@@ -8,7 +8,7 @@ WINDOW_HEIGHT = 600
 PLAYER_RADIUS = 15
 BULLET_RADIUS = 5
 BULLET_SPEED = 10
-SHRINK_AMOUNT = 10
+SHRINK_AMOUNT = 5
 
 # Colors
 WHITE = (255, 255, 255)
@@ -21,6 +21,8 @@ screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Shooting Game")
 clock = pygame.time.Clock()
 
+# Lock the window position
+pygame.event.set_grab(True)
 
 # Player class
 class Player:
@@ -66,7 +68,6 @@ class Player:
                         WINDOW_HEIGHT += SHRINK_AMOUNT
                         screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
-
 # Bullet class
 class Bullet:
     def __init__(self, x, y):
@@ -92,7 +93,6 @@ class Bullet:
         angle = math.atan2(dy, dx)
         self.dx = math.cos(angle) * BULLET_SPEED
         self.dy = math.sin(angle) * BULLET_SPEED
-
 
 # Game loop
 def game_loop():
@@ -129,7 +129,6 @@ def game_loop():
 
         # Set frame rate
         clock.tick(60)
-
 
 # Start the game
 game_loop()
