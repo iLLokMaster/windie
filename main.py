@@ -32,6 +32,8 @@ class Player:
         self.y = y
         self.radius = PLAYER_RADIUS
         self.bullets = []
+        self.shoot_cooldown = 500  # milliseconds
+        self.last_shot_time = pygame.time.get_ticks()
 
     def draw(self, screen):
         f"""Отрисовка персонажа на холсте. {screen} -- объект экрана(холст)"""
@@ -47,10 +49,13 @@ class Player:
     def shoot(self):
         """Создание и отрисовка пули.
         пуля летит по прямой траектори по направлению к курсору от персонажа."""
-        bullet = Bullet(self.x, self.y)
-        cursor_x, cursor_y = pygame.mouse.get_pos()
-        bullet.set_velocity_towards_cursor(cursor_x, cursor_y)
-        self.bullets.append(bullet)
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_shot_time >= self.shoot_cooldown:
+            bullet = Bullet(self.x, self.y)
+            cursor_x, cursor_y = pygame.mouse.get_pos()
+            bullet.set_velocity_towards_cursor(cursor_x, cursor_y)
+            self.bullets.append(bullet)
+            self.last_shot_time = current_time  # Update the last shot time
 
     def update_bullets(self):
         """обработка соприкосновения пули с границей экрана.
@@ -119,9 +124,10 @@ def game_loop():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    player.shoot()
+
+        # Check if the left mouse button is held down
+        if pygame.mouse.get_pressed()[0]:  # 0 is the left mouse button
+            player.shoot()
 
         # Keyboard input
         keys = pygame.key.get_pressed()
@@ -141,7 +147,6 @@ def game_loop():
         pygame.display.update()
 
         clock.tick(60)
-
 
 # Start the game
 game_loop()
