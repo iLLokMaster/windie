@@ -9,6 +9,9 @@ PLAYER_RADIUS = 15
 BULLET_RADIUS = 5
 BULLET_SPEED = 10
 SHRINK_AMOUNT = 5
+ENEMY_RADIUS = 20
+ENEMY_COLOR = (0, 255, 0)  # Green color for enemies
+SPAWN_INTERVAL = 2000  # milliseconds
 
 # Colors
 WHITE = (255, 255, 255)
@@ -33,48 +36,39 @@ class Player:
         self.y = y
         self.radius = PLAYER_RADIUS
         self.bullets = []
+        self.shoot_cooldown = 500  # milliseconds
+        self.last_shot_time = pygame.time.get_ticks()
 
     def draw(self, screen):
-        f"""Отрисовка персонажа на холсте. {screen} -- объект экрана(холст)"""
         pygame.draw.circle(screen, WHITE, (self.x, self.y), self.radius)
         for bullet in self.bullets:
             bullet.draw(screen)
 
     def move(self, dx, dy):
-        """изменение координат. выполняет перемещение персонажа по экрану."""
         self.x += dx
         self.y += dy
 
     def shoot(self):
-        """Создание и отрисовка пули.
-        пуля летит по прямой траектори по направлению к курсору от персонажа."""
-        bullet = Bullet(self.x, self.y)
-        cursor_x, cursor_y = pygame.mouse.get_pos()
-        bullet.set_velocity_towards_cursor(cursor_x, cursor_y)
-        self.bullets.append(bullet)
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_shot_time >= self.shoot_cooldown:
+            bullet = Bullet(self.x, self.y)
+            cursor_x, cursor_y = pygame.mouse.get_pos()
+            bullet.set_velocity_towards_cursor(cursor_x, cursor_y)
+            self.bullets.append(bullet)
+            self.last_shot_time = current_time  # Update the last shot time
 
     def update_bullets(self):
-        """обработка соприкосновения пули с границей экрана.
-        при соприкоснавении экран отодвигается от пули."""
         global WINDOW_WIDTH, WINDOW_HEIGHT
         for bullet in self.bullets:
             bullet.update()
             if bullet.is_outside_screen():
                 self.bullets.remove(bullet)
                 if bullet.x <= 0 or bullet.x >= WINDOW_WIDTH:
-                    if bullet.x <= 0:
-                        WINDOW_WIDTH += SHRINK_AMOUNT
-                        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-                    else:
-                        WINDOW_WIDTH += SHRINK_AMOUNT
-                        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+                    WINDOW_WIDTH += SHRINK_AMOUNT
+                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
                 if bullet.y <= 0 or bullet.y >= WINDOW_HEIGHT:
-                    if bullet.y <= 0:
-                        WINDOW_HEIGHT += SHRINK_AMOUNT
-                        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-                    else:
-                        WINDOW_HEIGHT += SHRINK_AMOUNT
-                        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+                    WINDOW_HEIGHT += SHRINK_AMOUNT
+                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
 
 # Bullet class
@@ -87,18 +81,13 @@ class Bullet:
         self.dy = -BULLET_SPEED
 
     def draw(self, screen):
-        f"""Отрисовка пули на холсте. принимает параметр {screen} -- холст"""
         pygame.draw.circle(screen, RED, (self.x, self.y), self.radius)
 
     def update(self):
-        """Обновление положения пули на экране.
-        нужно, чтобы пуля постоянно летела, каждый кадр."""
         self.x += self.dx
         self.y += self.dy
 
     def is_outside_screen(self):
-        """"это вообще волшебная функция. я хз как она работает, но явно не без божьей помощи.
-        не совветую её трогать!"""
         return self.x < 0 or self.x > WINDOW_WIDTH or self.y < 0 or self.y > WINDOW_HEIGHT
 
     def set_velocity_towards_cursor(self, cursor_x, cursor_y):
@@ -109,10 +98,32 @@ class Bullet:
         self.dy = math.sin(angle) * BULLET_SPEED
 
 
+# Enemy class
+class Enemy:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.radius = ENEMY_RADIUS
+        self.health = 1  # Each enemy starts with 1 health point
+
+    def draw(self, screen):
+        pygame.draw.circle(screen, ENEMY_COLOR, (self.x, self.y), self.radius)
+
+    def update(self):
+        # You can add enemy movement logic here if needed
+        pass
+
+    def is_hit(self, bullet):
+        """Check if the enemy is hit by a bullet."""
+        distance = math.sqrt((self.x - bullet.x) ** 2 + (self.y - bullet.y) ** 2)
+        return distance < self.radius + bullet.radius
+
+
 # Game loop
 def game_loop():
-    """Главный цикл программы со всеми обработчиками."""
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
+    enemies = []
+    last_spawn_time = pygame.time.get_ticks()
 
     while True:
         # Event handling
@@ -120,9 +131,10 @@ def game_loop():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    player.shoot()
+
+        # Check if the left mouse button is held down
+        if pygame.mouse.get_pressed()[0]:  # 0 is the left mouse button
+            player.shoot()
 
         # Keyboard input
         keys = pygame.key.get_pressed()
@@ -137,11 +149,47 @@ def game_loop():
 
         player.update_bullets()
 
+        # Spawn enemies at intervals
+        current_time = pygame.time.get_ticks()
+        if current_time - last_spawn_time >= SPAWN_INTERVAL:
+            spawn_enemy(enemies)
+            last_spawn_time = current_time
+
+        # Check for collisions and update enemies
+        for bullet in player.bullets[:]:  # Iterate over a copy of the list to modify it safely
+            for enemy in enemies[:]:  # Same for enemies
+                if enemy.is_hit(bullet):
+                    enemies.remove(enemy)
+                    player.bullets.remove(bullet)
+                    break  # Exit the inner loop if a collision is detected
+
+        # Drawing
         screen.fill(BLACK)
         player.draw(screen)
-        pygame.display.update()
+        for enemy in enemies:
+            enemy.draw(screen)
 
+        pygame.display.update()
         clock.tick(60)
+
+
+def spawn_enemy(enemies):
+    # Randomly spawn an enemy at the edge of the window
+    side = random.choice(['top', 'bottom', 'left', 'right'])
+    if side == 'top':
+        x = random.randint(0, WINDOW_WIDTH)
+        y = 0
+    elif side == 'bottom':
+        x = random.randint(0, WINDOW_WIDTH)
+        y = WINDOW_HEIGHT
+    elif side == 'left':
+        x = 0
+        y = random.randint(0, WINDOW_HEIGHT)
+    else:  # 'right'
+        x = WINDOW_WIDTH
+        y = random.randint(0, WINDOW_HEIGHT)
+
+    enemies.append(Enemy(x, y))
 
 
 # Start the game
