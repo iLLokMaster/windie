@@ -2,30 +2,27 @@ import pygame
 import random
 import math
 
-# Constants
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 PLAYER_RADIUS = 15
 BULLET_RADIUS = 5
 BULLET_SPEED = 10
 SHRINK_AMOUNT = 5
+SHRINK_INTERVAL = 1000
 
-# Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 
-# Initialize Pygame
 pygame.init()
-screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption("Shooting Game")
 clock = pygame.time.Clock()
 
-# Lock the window position
+clock = pygame.time.Clock()
 pygame.event.set_grab(True)
 
 
-# Player class
 class Player:
     def __init__(self, x, y):
         self.x = x
@@ -53,30 +50,41 @@ class Player:
         self.bullets.append(bullet)
 
     def update_bullets(self):
-        """обработка соприкосновения пули с границей экрана.
-        при соприкоснавении экран отодвигается от пули."""
+        """Обработка соприкосновения пули с границей экрана.
+        При соприкосновении экран корректно расширяется."""
         global WINDOW_WIDTH, WINDOW_HEIGHT
         for bullet in self.bullets:
             bullet.update()
             if bullet.is_outside_screen():
                 self.bullets.remove(bullet)
-                if bullet.x <= 0 or bullet.x >= WINDOW_WIDTH:
-                    if bullet.x <= 0:
-                        WINDOW_WIDTH += SHRINK_AMOUNT
-                        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-                    else:
-                        WINDOW_WIDTH += SHRINK_AMOUNT
-                        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-                if bullet.y <= 0 or bullet.y >= WINDOW_HEIGHT:
-                    if bullet.y <= 0:
-                        WINDOW_HEIGHT += SHRINK_AMOUNT
-                        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-                    else:
-                        WINDOW_HEIGHT += SHRINK_AMOUNT
-                        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+
+                # Расширение окна влево
+                if bullet.x <= 0:
+                    WINDOW_WIDTH += SHRINK_AMOUNT
+                    self.x += SHRINK_AMOUNT  # Сдвиг игрока вправо
+                    for other_bullet in self.bullets:
+                        other_bullet.x += SHRINK_AMOUNT  # Сдвиг всех пуль вправо
+                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+
+                # Расширение окна вправо
+                elif bullet.x >= WINDOW_WIDTH:
+                    WINDOW_WIDTH += SHRINK_AMOUNT
+                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+
+                # Расширение окна вверх
+                if bullet.y <= 0:
+                    WINDOW_HEIGHT += SHRINK_AMOUNT
+                    self.y += SHRINK_AMOUNT  # Сдвиг игрока вниз
+                    for other_bullet in self.bullets:
+                        other_bullet.y += SHRINK_AMOUNT  # Сдвиг всех пуль вниз
+                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+
+                # Расширение окна вниз
+                elif bullet.y >= WINDOW_HEIGHT:
+                    WINDOW_HEIGHT += SHRINK_AMOUNT
+                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
 
-# Bullet class
 class Bullet:
     def __init__(self, x, y):
         self.x = x
@@ -108,13 +116,14 @@ class Bullet:
         self.dy = math.sin(angle) * BULLET_SPEED
 
 
-# Game loop
 def game_loop():
     """Главный цикл программы со всеми обработчиками."""
+    global WINDOW_WIDTH, WINDOW_HEIGHT, screen
+
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
+    last_shrink_time = pygame.time.get_ticks()
 
     while True:
-        # Event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -123,7 +132,6 @@ def game_loop():
                 if event.button == 1:
                     player.shoot()
 
-        # Keyboard input
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
             player.move(0, -5)
@@ -134,6 +142,16 @@ def game_loop():
         if keys[pygame.K_d]:
             player.move(5, 0)
 
+        current_time = pygame.time.get_ticks()
+        if current_time - last_shrink_time >= SHRINK_INTERVAL:
+            last_shrink_time = current_time
+            if WINDOW_WIDTH > 100 and WINDOW_HEIGHT > 100:
+                WINDOW_WIDTH -= SHRINK_AMOUNT
+                WINDOW_HEIGHT -= SHRINK_AMOUNT
+                screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
+                player.x = min(player.x, WINDOW_WIDTH)
+                player.y = min(player.y, WINDOW_HEIGHT)
+
         player.update_bullets()
 
         screen.fill(BLACK)
@@ -143,5 +161,4 @@ def game_loop():
         clock.tick(60)
 
 
-# Start the game
 game_loop()
