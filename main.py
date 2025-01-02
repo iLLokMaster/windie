@@ -2,7 +2,6 @@ import pygame
 import random
 import math
 
-
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 PLAYER_RADIUS = 15
@@ -11,10 +10,13 @@ BULLET_SPEED = 10
 SHRINK_AMOUNT = 5
 ENEMY_RADIUS = 20
 ENEMY_COLOR = (0, 255, 0)
+POINT_COLOR = (128, 0, 128)
 SPAWN_INTERVAL = 2000
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
+
+COUNT_OF_POINTS = 0
 
 pygame.init()
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -120,6 +122,27 @@ class Enemy:
         return distance < self.radius + bullet.radius
 
 
+class Point:
+    def __init__(self, mass, x, y):
+        self.mass = mass
+        self.x = x
+        self.y = y
+
+    def create_new_point(self, mass, x, y):
+        """Создание нового поинта. вычисление его размера по поличеству добавляемых очков"""
+        if self.mass == 1:
+            self.radius = 2
+        if self.mass > 1 and self.mass < 5:
+            self.radius = 5
+        else:
+            self.radius = 7
+
+        pygame.draw.circle(screen, POINT_COLOR, (self.x, self.y), self.radius)
+
+    def update(self):
+        pass
+
+
 def game_loop():
     """Главный цикл программы со всеми обработчиками."""
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
@@ -143,6 +166,11 @@ def game_loop():
             player.move(-5, 0)
         if keys[pygame.K_d]:
             player.move(5, 0)
+        if keys[pygame.K_SPACE]:
+            # здесь будет создание нового окна с меню паузы
+            # https://translated.turbopages.org/proxy_u/en-ru.ru.5d415dfc-6776baf6-dbd2b2e1-74722d776562/https/www.geeksforgeeks.org/how-to-use-multiple-screens-on-pygame
+            print("нажат пробел ")
+
         player.update_bullets()
         current_time = pygame.time.get_ticks()
         if current_time - last_spawn_time >= SPAWN_INTERVAL:
