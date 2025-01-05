@@ -8,6 +8,7 @@ PLAYER_RADIUS = 15
 BULLET_RADIUS = 5
 BULLET_SPEED = 10
 SHRINK_AMOUNT = 5
+SHRINK_INTERVAL = 1000
 ENEMY_RADIUS = 20
 ENEMY_COLOR = (0, 255, 0)
 POINT_COLOR = (128, 0, 128)
@@ -65,10 +66,30 @@ class Player:
             bullet.update()
             if bullet.is_outside_screen():
                 self.bullets.remove(bullet)
-                if bullet.x <= 0 or bullet.x >= WINDOW_WIDTH:
+
+                # Расширение окна влево
+                if bullet.x <= 0:
+                    WINDOW_WIDTH += SHRINK_AMOUNT
+                    self.x += SHRINK_AMOUNT  # Сдвиг игрока вправо
+                    for other_bullet in self.bullets:
+                        other_bullet.x += SHRINK_AMOUNT  # Сдвиг всех пуль вправо
+                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+
+                # Расширение окна вправо
+                elif bullet.x >= WINDOW_WIDTH:
                     WINDOW_WIDTH += SHRINK_AMOUNT
                     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-                if bullet.y <= 0 or bullet.y >= WINDOW_HEIGHT:
+
+                # Расширение окна вверх
+                if bullet.y <= 0:
+                    WINDOW_HEIGHT += SHRINK_AMOUNT
+                    self.y += SHRINK_AMOUNT  # Сдвиг игрока вниз
+                    for other_bullet in self.bullets:
+                        other_bullet.y += SHRINK_AMOUNT  # Сдвиг всех пуль вниз
+                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+
+                # Расширение окна вниз
+                elif bullet.y >= WINDOW_HEIGHT:
                     WINDOW_HEIGHT += SHRINK_AMOUNT
                     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
@@ -152,10 +173,12 @@ class Point:
 
 def game_loop(COUNT_OF_POINTS):
     """Главный цикл программы со всеми обработчиками."""
+    global WINDOW_WIDTH, WINDOW_HEIGHT, screen
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
     enemies = []
     points = []
     last_spawn_time = pygame.time.get_ticks()
+    last_shrink_time = pygame.time.get_ticks()
     counter_x = WINDOW_WIDTH - 100
     counter_y = 10
 
@@ -181,6 +204,18 @@ def game_loop(COUNT_OF_POINTS):
             # здесь будет создание нового окна с меню паузы
             # https://translated.turbopages.org/proxy_u/en-ru.ru.5d415dfc-6776baf6-dbd2b2e1-74722d776562/https/www.geeksforgeeks.org/how-to-use-multiple-screens-on-pygame
             print("нажат пробел ")
+
+        current_time = pygame.time.get_ticks()
+        if current_time - last_shrink_time >= SHRINK_INTERVAL:
+            last_shrink_time = current_time
+            if WINDOW_WIDTH > 100 and WINDOW_HEIGHT > 100:
+                WINDOW_WIDTH -= SHRINK_AMOUNT
+                WINDOW_HEIGHT -= SHRINK_AMOUNT
+                screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
+                player.x = min(player.x, WINDOW_WIDTH)
+                player.y = min(player.y, WINDOW_HEIGHT)
+
+        player.update_bullets()
 
         counter_text = font.render(f"{COUNT_OF_POINTS}", True, POINT_COLOR)
 
