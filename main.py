@@ -2,12 +2,14 @@ import pygame
 import random
 import math
 
+enemies = []
+points = []
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 PLAYER_RADIUS = 15
 BULLET_RADIUS = 5
-BULLET_SPEED = 10
-SHRINK_AMOUNT = 5
+BULLET_SPEED = 7
+SHRINK_AMOUNT = 10
 SHRINK_INTERVAL = 1000
 ENEMY_RADIUS = 20
 ENEMY_COLOR = (0, 255, 0)
@@ -73,6 +75,10 @@ class Player:
                     self.x += SHRINK_AMOUNT  # Сдвиг игрока вправо
                     for other_bullet in self.bullets:
                         other_bullet.x += SHRINK_AMOUNT  # Сдвиг всех пуль вправо
+                    for enemy in enemies:
+                        enemy.x += SHRINK_AMOUNT
+                    for point in points:
+                        point.x += SHRINK_AMOUNT
                     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
                 # Расширение окна вправо
@@ -86,6 +92,10 @@ class Player:
                     self.y += SHRINK_AMOUNT  # Сдвиг игрока вниз
                     for other_bullet in self.bullets:
                         other_bullet.y += SHRINK_AMOUNT  # Сдвиг всех пуль вниз
+                    for enemy in enemies:
+                        enemy.y += SHRINK_AMOUNT
+                    for point in points:
+                        point.y += SHRINK_AMOUNT
                     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
                 # Расширение окна вниз
@@ -173,10 +183,10 @@ class Point:
 
 def game_loop(COUNT_OF_POINTS):
     """Главный цикл программы со всеми обработчиками."""
+    global points
+    global enemies
     global WINDOW_WIDTH, WINDOW_HEIGHT, screen
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
-    enemies = []
-    points = []
     last_spawn_time = pygame.time.get_ticks()
     last_shrink_time = pygame.time.get_ticks()
     counter_x = WINDOW_WIDTH - 100
@@ -228,6 +238,7 @@ def game_loop(COUNT_OF_POINTS):
         for bullet in player.bullets[:]:
             for enemy in enemies[:]:
                 if enemy.is_hit(bullet):
+                    print(f"текущее xp врага - {enemy.health}")
                     if enemy.health - 1 == 0:
                         enemies.remove(enemy)
                         points.append(Point(enemy.mass, enemy.x, enemy.y))
@@ -235,6 +246,7 @@ def game_loop(COUNT_OF_POINTS):
                         break
                     else:
                         enemy.health -= 1
+                        break
 
         for point in points:
             if point.is_hit(player):
