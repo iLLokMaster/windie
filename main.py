@@ -2,7 +2,6 @@ import pygame
 import random
 import math
 
-
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 PLAYER_RADIUS = 15
@@ -11,12 +10,16 @@ BULLET_SPEED = 10
 SHRINK_AMOUNT = 5
 ENEMY_RADIUS = 20
 ENEMY_COLOR = (0, 255, 0)
+POINT_COLOR = (128, 0, 128)
 SPAWN_INTERVAL = 2000
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 
+COUNT_OF_POINTS = 0
+
 pygame.init()
+font = pygame.font.SysFont('arial', 24)
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Shooting Game")
 clock = pygame.time.Clock()
@@ -102,11 +105,12 @@ class Bullet:
 
 
 class Enemy:
-    def __init__(self, x, y):
+    def __init__(self, x, y, health):
         self.x = x
         self.y = y
         self.radius = ENEMY_RADIUS
-        self.health = 1
+        self.health = health
+        self.mass = health
 
     def draw(self, screen):
         pygame.draw.circle(screen, ENEMY_COLOR, (self.x, self.y), self.radius)
@@ -120,11 +124,40 @@ class Enemy:
         return distance < self.radius + bullet.radius
 
 
-def game_loop():
+class Point:
+    def __init__(self, mass, x, y):
+        """Создание нового поинта. вычисление его размера по поличеству добавляемых очков"""
+        self.mass = mass
+        self.x = x
+        self.y = y
+
+        if self.mass == 1:
+            self.radius = 2
+        if self.mass > 1 and self.mass < 5:
+            self.radius = 5
+        else:
+            self.radius = 7
+
+    def draw(self):
+        pygame.draw.circle(screen, POINT_COLOR, (self.x, self.y), self.radius)
+
+    def is_hit(self, player):
+        """Check if the enemy is hit by a bullet."""
+        distance = math.sqrt((self.x - player.x) ** 2 + (self.y - player.y) ** 2)
+        return distance < self.radius + player.radius
+
+    def update(self):
+        pass
+
+
+def game_loop(COUNT_OF_POINTS):
     """Главный цикл программы со всеми обработчиками."""
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
     enemies = []
+    points = []
     last_spawn_time = pygame.time.get_ticks()
+    counter_x = WINDOW_WIDTH - 100
+    counter_y = 10
 
     while True:
         for event in pygame.event.get():
@@ -143,6 +176,14 @@ def game_loop():
             player.move(-5, 0)
         if keys[pygame.K_d]:
             player.move(5, 0)
+        if keys[pygame.K_SPACE]:
+            screen.fill(BLACK)
+            # здесь будет создание нового окна с меню паузы
+            # https://translated.turbopages.org/proxy_u/en-ru.ru.5d415dfc-6776baf6-dbd2b2e1-74722d776562/https/www.geeksforgeeks.org/how-to-use-multiple-screens-on-pygame
+            print("нажат пробел ")
+
+        counter_text = font.render(f"{COUNT_OF_POINTS}", True, POINT_COLOR)
+
         player.update_bullets()
         current_time = pygame.time.get_ticks()
         if current_time - last_spawn_time >= SPAWN_INTERVAL:
@@ -152,14 +193,26 @@ def game_loop():
         for bullet in player.bullets[:]:
             for enemy in enemies[:]:
                 if enemy.is_hit(bullet):
-                    enemies.remove(enemy)
-                    player.bullets.remove(bullet)
-                    break
+                    if enemy.health - 1 == 0:
+                        enemies.remove(enemy)
+                        points.append(Point(enemy.mass, enemy.x, enemy.y))
+                        player.bullets.remove(bullet)
+                        break
+                    else:
+                        enemy.health -= 1
+
+        for point in points:
+            if point.is_hit(player):
+                points.remove(point)
+                COUNT_OF_POINTS += 1
 
         screen.fill(BLACK)
+        screen.blit(counter_text, (counter_x, counter_y))
         player.draw(screen)
         for enemy in enemies:
             enemy.draw(screen)
+        for point in points:
+            point.draw()
 
         pygame.display.update()
         clock.tick(60)
@@ -180,7 +233,7 @@ def spawn_enemy(enemies):
         x = WINDOW_WIDTH
         y = random.randint(0, WINDOW_HEIGHT)
 
-    enemies.append(Enemy(x, y))
+    enemies.append(Enemy(x, y, 2))
 
 
-game_loop()
+game_loop(COUNT_OF_POINTS)
