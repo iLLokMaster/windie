@@ -19,8 +19,10 @@ SPAWN_INTERVAL = 2000
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
+HEALTH_COLOR = (58, 222, 58)
 
 COUNT_OF_POINTS = 0
+PLAYER_HEALTH = 10
 
 pygame.init()
 font = pygame.font.SysFont('arial', 24)
@@ -43,7 +45,7 @@ class Player:
         f"""Отрисовка персонажа на холсте. {screen} -- объект экрана(холст)"""
         pygame.draw.circle(screen, WHITE, (self.x, self.y), self.radius)
         for bullet in self.bullets:
-            bullet.draw(screen)
+            bullet.draw()
 
     def move(self, dx, dy):
         """изменение координат. выполняет перемещение персонажа по экрану."""
@@ -103,6 +105,10 @@ class Player:
                 elif bullet.y >= WINDOW_HEIGHT:
                     WINDOW_HEIGHT += SHRINK_AMOUNT
                     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+
+    def is_hit(self, player, enemy):
+        """Check if the enemy is hit by a player."""
+        return player.rect.colliderect(enemy.rect)
 
 
 def get_window_position():
@@ -198,7 +204,7 @@ def move_win(coordinates):
 def game_loop():
     """Главный цикл программы со всеми обработчиками."""
     global points, COUNT_OF_POINTS
-    global enemies
+    global enemies, PLAYER_HEALTH
     global WINDOW_WIDTH, WINDOW_HEIGHT, screen
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
     last_spawn_time = pygame.time.get_ticks()
@@ -209,7 +215,8 @@ def game_loop():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-
+        if PLAYER_HEALTH == 0:
+            game_over()
         if pygame.mouse.get_pressed()[0]:
             player.shoot()
         keys = pygame.key.get_pressed()
@@ -228,6 +235,8 @@ def game_loop():
             print("нажат пробел ")
         counter_x = WINDOW_WIDTH - 100
         counter_y = 10
+        counter_health_x = 10
+        counter_health_y = 10
 
         # уменьшение экрана
         current_time = pygame.time.get_ticks()
@@ -243,6 +252,7 @@ def game_loop():
         player.update_bullets()
 
         counter_text = font.render(f"{COUNT_OF_POINTS}", True, POINT_COLOR)
+        counter_health_text = font.render(f"{PLAYER_HEALTH}", True, HEALTH_COLOR)
 
         player.update_bullets()
         current_time = pygame.time.get_ticks()
@@ -262,6 +272,8 @@ def game_loop():
                     else:
                         enemy.health -= 1
                         break
+                if player.is_hit(player, enemy):
+                    PLAYER_HEALTH -= 1
 
         for point in points:
             if point.is_hit(player):
@@ -270,9 +282,10 @@ def game_loop():
 
         screen.fill(BLACK)
         screen.blit(counter_text, (counter_x, counter_y))
+        screen.blit(counter_health_text, (counter_health_x, counter_health_y))
         player.draw()
         for enemy in enemies:
-            enemy.draw(screen)
+            enemy.draw()
         for point in points:
             point.draw()
 
