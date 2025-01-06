@@ -1,3 +1,4 @@
+from ctypes import windll
 import pygame
 import random
 import math
@@ -9,8 +10,8 @@ WINDOW_HEIGHT = 600
 PLAYER_RADIUS = 15
 BULLET_RADIUS = 5
 BULLET_SPEED = 7
-SHRINK_AMOUNT = 10
-SHRINK_INTERVAL = 1000
+SHRINK_AMOUNT = 50
+SHRINK_INTERVAL = 75
 ENEMY_RADIUS = 20
 ENEMY_COLOR = (0, 255, 0)
 POINT_COLOR = (128, 0, 128)
@@ -104,6 +105,13 @@ class Player:
                     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
 
+def get_window_position():
+    window_surface = pygame.display.get_surface()
+    window_rect = window_surface.get_rect()
+    window_position = [window_rect.x, window_rect.y]
+    return window_position
+
+
 class Bullet:
     def __init__(self, x, y):
         self.x = x
@@ -181,6 +189,12 @@ class Point:
         pass
 
 
+def moveWin(coordinates):
+    hwnd = pygame.display.get_wm_info()['window']
+    w, h = pygame.display.get_surface().get_size()
+    windll.user32.MoveWindow(hwnd, -coordinates[0], -coordinates[1], w, h, False)
+
+
 def game_loop(COUNT_OF_POINTS):
     """Главный цикл программы со всеми обработчиками."""
     global points
@@ -189,8 +203,6 @@ def game_loop(COUNT_OF_POINTS):
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
     last_spawn_time = pygame.time.get_ticks()
     last_shrink_time = pygame.time.get_ticks()
-    counter_x = WINDOW_WIDTH - 100
-    counter_y = 10
 
     while True:
         for event in pygame.event.get():
@@ -214,13 +226,16 @@ def game_loop(COUNT_OF_POINTS):
             # здесь будет создание нового окна с меню паузы
             # https://translated.turbopages.org/proxy_u/en-ru.ru.5d415dfc-6776baf6-dbd2b2e1-74722d776562/https/www.geeksforgeeks.org/how-to-use-multiple-screens-on-pygame
             print("нажат пробел ")
+        counter_x = WINDOW_WIDTH - 100
+        counter_y = 10
 
+        # уменьшение экрана
         current_time = pygame.time.get_ticks()
         if current_time - last_shrink_time >= SHRINK_INTERVAL:
             last_shrink_time = current_time
             if WINDOW_WIDTH > 100 and WINDOW_HEIGHT > 100:
-                WINDOW_WIDTH -= SHRINK_AMOUNT
-                WINDOW_HEIGHT -= SHRINK_AMOUNT
+                WINDOW_WIDTH -= 1
+                WINDOW_HEIGHT -= 1
                 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
                 player.x = min(player.x, WINDOW_WIDTH)
                 player.y = min(player.y, WINDOW_HEIGHT)
@@ -281,6 +296,11 @@ def spawn_enemy(enemies):
         y = random.randint(0, WINDOW_HEIGHT)
 
     enemies.append(Enemy(x, y, 2))
+
+
+def game_over():
+    print('игра окончена')
+    exit()
 
 
 game_loop(COUNT_OF_POINTS)
