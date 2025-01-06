@@ -120,7 +120,7 @@ class Bullet:
         self.dx = 0
         self.dy = -BULLET_SPEED
 
-    def draw(self):
+    def draw(self, screen):
         f"""Отрисовка пули на холсте. принимает параметр {screen} -- холст"""
         pygame.draw.circle(screen, RED, (self.x, self.y), self.radius)
 
@@ -151,7 +151,7 @@ class Enemy:
         self.health = health
         self.mass = health
 
-    def draw(self):
+    def draw(self, screen):
         pygame.draw.circle(screen, ENEMY_COLOR, (self.x, self.y), self.radius)
 
     def update(self):
@@ -194,7 +194,36 @@ def move_win(coordinates):
     w, h = pygame.display.get_surface().get_size()
     windll.user32.MoveWindow(hwnd, -coordinates[0], -coordinates[1], w, h, False)
 
+def perks_menu():
+    showing_perks = True
+    double_bullet_speed = False
 
+    while showing_perks:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+        screen.fill(BLACK)
+
+        perks_text = font.render("Perks Menu", True, WHITE)
+        double_speed_text = font.render("Нажмите 1: Двойная скорость", True, WHITE)
+        back_text = font.render("Нажмите B для возвращения", True, WHITE)
+
+        screen.blit(perks_text, (WINDOW_WIDTH // 2 - perks_text.get_width() // 2, WINDOW_HEIGHT // 2 - 100))
+        screen.blit(double_speed_text, (WINDOW_WIDTH // 2 - double_speed_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
+        screen.blit(back_text, (WINDOW_WIDTH // 2 - back_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_b]:
+            showing_perks = False
+        if keys[pygame.K_1]:
+            global BULLET_SPEED
+            BULLET_SPEED *= 2  
+            showing_perks = False
+
+        pygame.display.update()
+        clock.tick(15)
 def game_loop():
     """Главный цикл программы со всеми обработчиками."""
     global points, COUNT_OF_POINTS
@@ -221,11 +250,9 @@ def game_loop():
             player.move(-5, 0)
         if keys[pygame.K_d]:
             player.move(5, 0)
-        if keys[pygame.K_SPACE]:
-            screen.fill(BLACK)
-            # здесь будет создание нового окна с меню паузы
-            # https://translated.turbopages.org/proxy_u/en-ru.ru.5d415dfc-6776baf6-dbd2b2e1-74722d776562/https/www.geeksforgeeks.org/how-to-use-multiple-screens-on-pygame
-            print("нажат пробел ")
+        if keys[pygame.K_RETURN]:
+            perks_menu()
+
         counter_x = WINDOW_WIDTH - 100
         counter_y = 10
 
@@ -278,6 +305,7 @@ def game_loop():
 
         pygame.display.update()
         clock.tick(60)
+
 
 
 def spawn_enemy():
