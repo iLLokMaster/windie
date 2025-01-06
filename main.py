@@ -39,7 +39,7 @@ class Player:
         self.shoot_cooldown = 500
         self.last_shot_time = pygame.time.get_ticks()
 
-    def draw(self, screen):
+    def draw(self):
         f"""Отрисовка персонажа на холсте. {screen} -- объект экрана(холст)"""
         pygame.draw.circle(screen, WHITE, (self.x, self.y), self.radius)
         for bullet in self.bullets:
@@ -64,7 +64,7 @@ class Player:
     def update_bullets(self):
         """обработка соприкосновения пули с границей экрана.
         при соприкоснавении экран отодвигается от пули."""
-        global WINDOW_WIDTH, WINDOW_HEIGHT
+        global WINDOW_WIDTH, WINDOW_HEIGHT, screen
         for bullet in self.bullets:
             bullet.update()
             if bullet.is_outside_screen():
@@ -120,7 +120,7 @@ class Bullet:
         self.dx = 0
         self.dy = -BULLET_SPEED
 
-    def draw(self, screen):
+    def draw(self):
         f"""Отрисовка пули на холсте. принимает параметр {screen} -- холст"""
         pygame.draw.circle(screen, RED, (self.x, self.y), self.radius)
 
@@ -151,7 +151,7 @@ class Enemy:
         self.health = health
         self.mass = health
 
-    def draw(self, screen):
+    def draw(self):
         pygame.draw.circle(screen, ENEMY_COLOR, (self.x, self.y), self.radius)
 
     def update(self):
@@ -172,7 +172,7 @@ class Point:
 
         if self.mass == 1:
             self.radius = 2
-        if self.mass > 1 and self.mass < 5:
+        if 1 < self.mass < 5:
             self.radius = 5
         else:
             self.radius = 7
@@ -189,15 +189,15 @@ class Point:
         pass
 
 
-def moveWin(coordinates):
+def move_win(coordinates):
     hwnd = pygame.display.get_wm_info()['window']
     w, h = pygame.display.get_surface().get_size()
     windll.user32.MoveWindow(hwnd, -coordinates[0], -coordinates[1], w, h, False)
 
 
-def game_loop(COUNT_OF_POINTS):
+def game_loop():
     """Главный цикл программы со всеми обработчиками."""
-    global points
+    global points, COUNT_OF_POINTS
     global enemies
     global WINDOW_WIDTH, WINDOW_HEIGHT, screen
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
@@ -247,7 +247,7 @@ def game_loop(COUNT_OF_POINTS):
         player.update_bullets()
         current_time = pygame.time.get_ticks()
         if current_time - last_spawn_time >= SPAWN_INTERVAL:
-            spawn_enemy(enemies)
+            spawn_enemy()
             last_spawn_time = current_time
 
         for bullet in player.bullets[:]:
@@ -270,7 +270,7 @@ def game_loop(COUNT_OF_POINTS):
 
         screen.fill(BLACK)
         screen.blit(counter_text, (counter_x, counter_y))
-        player.draw(screen)
+        player.draw()
         for enemy in enemies:
             enemy.draw(screen)
         for point in points:
@@ -280,7 +280,7 @@ def game_loop(COUNT_OF_POINTS):
         clock.tick(60)
 
 
-def spawn_enemy(enemies):
+def spawn_enemy():
     side = random.choice(['top', 'bottom', 'left', 'right'])
     if side == 'top':
         x = random.randint(0, WINDOW_WIDTH)
@@ -303,4 +303,4 @@ def game_over():
     exit()
 
 
-game_loop(COUNT_OF_POINTS)
+game_loop()
