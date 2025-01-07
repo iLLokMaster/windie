@@ -19,11 +19,9 @@ SPAWN_INTERVAL = 2000
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
-HEALTH_COLOR = (58, 222, 58)
 HEALTH_BAR_COLOR = (0, 128, 0)
 
 COUNT_OF_POINTS = 0
-PLAYER_HEALTH = 10
 
 pygame.init()
 font = pygame.font.SysFont('arial', 24)
@@ -117,22 +115,11 @@ class Player:
                     WINDOW_HEIGHT += SHRINK_AMOUNT
                     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
-    def is_hit(self, player, enemy):
-        """Check if the enemy is hit by a player."""
-        # return player.rect.colliderect(enemy.rect)
-
     def take_damage(self, amount):
         """Уменьшение здоровья игрока."""
         self.health -= amount
         if self.health <= 0:
             game_over()
-
-
-def get_window_position():
-    window_surface = pygame.display.get_surface()
-    window_rect = window_surface.get_rect()
-    window_position = [window_rect.x, window_rect.y]
-    return window_position
 
 
 class Bullet:
@@ -234,6 +221,7 @@ def move_win(coordinates):
     w, h = pygame.display.get_surface().get_size()
     windll.user32.MoveWindow(hwnd, -coordinates[0], -coordinates[1], w, h, False)
 
+
 def perks_menu():
     showing_perks = True
     double_bullet_speed = False
@@ -251,7 +239,8 @@ def perks_menu():
         back_text = font.render("Нажмите B для возвращения", True, WHITE)
 
         screen.blit(perks_text, (WINDOW_WIDTH // 2 - perks_text.get_width() // 2, WINDOW_HEIGHT // 2 - 100))
-        screen.blit(double_speed_text, (WINDOW_WIDTH // 2 - double_speed_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
+        screen.blit(double_speed_text,
+                    (WINDOW_WIDTH // 2 - double_speed_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
         screen.blit(back_text, (WINDOW_WIDTH // 2 - back_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
 
         keys = pygame.key.get_pressed()
@@ -269,7 +258,7 @@ def perks_menu():
 def game_loop():
     """Главный цикл программы со всеми обработчиками."""
     global points, COUNT_OF_POINTS
-    global enemies, PLAYER_HEALTH
+    global enemies
     global WINDOW_WIDTH, WINDOW_HEIGHT, screen
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
     last_spawn_time = pygame.time.get_ticks()
@@ -280,8 +269,7 @@ def game_loop():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-        if PLAYER_HEALTH == 0:
-            game_over()
+
         if pygame.mouse.get_pressed()[0]:
             player.shoot()
         keys = pygame.key.get_pressed()
@@ -293,13 +281,11 @@ def game_loop():
             player.move(-5, 0)
         if keys[pygame.K_d]:
             player.move(5, 0)
-        if keys[pygame.K_RETURN]:
+        if keys[pygame.K_SPACE]:
             perks_menu()
 
         counter_x = WINDOW_WIDTH - 100
         counter_y = 10
-        counter_health_x = 10
-        counter_health_y = 10
 
         # уменьшение экрана
         current_time = pygame.time.get_ticks()
@@ -315,7 +301,6 @@ def game_loop():
         player.update_bullets()
 
         counter_text = font.render(f"{COUNT_OF_POINTS}", True, POINT_COLOR)
-        counter_health_text = font.render(f"{PLAYER_HEALTH}", True, HEALTH_COLOR)
 
         player.update_bullets()
         current_time = pygame.time.get_ticks()
@@ -335,8 +320,6 @@ def game_loop():
                     else:
                         enemy.health -= 1
                         break
-                if player.is_hit(player, enemy):
-                    PLAYER_HEALTH -= 1
 
         for enemy in enemies:
             if enemy.is_colliding_with_player(player):
@@ -349,7 +332,6 @@ def game_loop():
 
         screen.fill(BLACK)
         screen.blit(counter_text, (counter_x, counter_y))
-        screen.blit(counter_health_text, (counter_health_x, counter_health_y))
         player.draw()
         player.draw_health_bar()
         for enemy in enemies:
@@ -383,5 +365,5 @@ def game_over():
     print('игра окончена')
     exit()
 
-game_loop()
 
+game_loop()
