@@ -19,6 +19,7 @@ SPAWN_INTERVAL = 2000
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
+HEALTH_BAR_COLOR = (0, 128, 0)
 
 COUNT_OF_POINTS = 0
 
@@ -38,12 +39,22 @@ class Player:
         self.bullets = []
         self.shoot_cooldown = 500
         self.last_shot_time = pygame.time.get_ticks()
+        self.health = 100
 
     def draw(self):
-        f"""Отрисовка персонажа на холсте. {screen} -- объект экрана(холст)"""
+        """Отрисовка персонажа на холсте. {screen} -- объект экрана(холст)"""
         pygame.draw.circle(screen, WHITE, (self.x, self.y), self.radius)
         for bullet in self.bullets:
             bullet.draw(screen)
+
+    def draw_health_bar(self):
+        """Отрисовка полоски здоровья игрока."""
+        bar_width = 200
+        bar_height = 20
+        health_ratio = self.health / 100
+        current_width = int(bar_width * health_ratio)
+        pygame.draw.rect(screen, HEALTH_BAR_COLOR, (10, 10, current_width, bar_height))
+        pygame.draw.rect(screen, WHITE, (10, 10, bar_width, bar_height), 2)
 
     def move(self, dx, dy):
         """изменение координат. выполняет перемещение персонажа по экрану."""
@@ -104,12 +115,11 @@ class Player:
                     WINDOW_HEIGHT += SHRINK_AMOUNT
                     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
-
-def get_window_position():
-    window_surface = pygame.display.get_surface()
-    window_rect = window_surface.get_rect()
-    window_position = [window_rect.x, window_rect.y]
-    return window_position
+    def take_damage(self, amount):
+        """Уменьшение здоровья игрока."""
+        self.health -= amount
+        if self.health <= 0:
+            game_over()
 
 
 class Bullet:
@@ -153,6 +163,18 @@ class Enemy:
 
     def draw(self, screen):
         pygame.draw.circle(screen, ENEMY_COLOR, (self.x, self.y), self.radius)
+        self.draw_health_bar(screen)
+
+    def draw_health_bar(self, screen):
+        """Отображение полоски здоровья врага."""
+        bar_width = 40
+        bar_height = 5
+        health_ratio = self.health / self.mass
+        current_width = int(bar_width * health_ratio)
+        bar_x = self.x - bar_width // 2
+        bar_y = self.y - self.radius - 10
+        pygame.draw.rect(screen, RED, (bar_x, bar_y, current_width, bar_height))
+        pygame.draw.rect(screen, WHITE, (bar_x, bar_y, bar_width, bar_height), 1)
 
     def update(self):
         pass
@@ -161,6 +183,11 @@ class Enemy:
         """Check if the enemy is hit by a bullet."""
         distance = math.sqrt((self.x - bullet.x) ** 2 + (self.y - bullet.y) ** 2)
         return distance < self.radius + bullet.radius
+
+    def is_colliding_with_player(self, player):
+        """Check if the enemy collides with the player."""
+        distance = math.sqrt((self.x - player.x) ** 2 + (self.y - player.y) ** 2)
+        return distance < self.radius + player.radius
 
 
 class Point:
@@ -219,11 +246,12 @@ def perks_menu():
             showing_perks = False
         if keys[pygame.K_1]:
             global BULLET_SPEED
-            BULLET_SPEED *= 2  
+            BULLET_SPEED *= 2
             showing_perks = False
 
         pygame.display.update()
         clock.tick(15)
+
 def game_loop():
     """Главный цикл программы со всеми обработчиками."""
     global points, COUNT_OF_POINTS
@@ -290,6 +318,10 @@ def game_loop():
                         enemy.health -= 1
                         break
 
+        for enemy in enemies:
+            if enemy.is_colliding_with_player(player):
+                player.take_damage(10)
+
         for point in points:
             if point.is_hit(player):
                 points.remove(point)
@@ -298,6 +330,7 @@ def game_loop():
         screen.fill(BLACK)
         screen.blit(counter_text, (counter_x, counter_y))
         player.draw()
+        player.draw_health_bar()
         for enemy in enemies:
             enemy.draw(screen)
         for point in points:
@@ -305,7 +338,6 @@ def game_loop():
 
         pygame.display.update()
         clock.tick(60)
-
 
 
 def spawn_enemy():
@@ -330,5 +362,5 @@ def game_over():
     print('игра окончена')
     exit()
 
-
 game_loop()
+
