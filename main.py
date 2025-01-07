@@ -20,6 +20,7 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 HEALTH_COLOR = (58, 222, 58)
+HEALTH_BAR_COLOR = (0, 128, 0)
 
 COUNT_OF_POINTS = 0
 PLAYER_HEALTH = 10
@@ -40,12 +41,22 @@ class Player:
         self.bullets = []
         self.shoot_cooldown = 500
         self.last_shot_time = pygame.time.get_ticks()
+        self.health = 100
 
     def draw(self):
-        f"""Отрисовка персонажа на холсте. {screen} -- объект экрана(холст)"""
+        """Отрисовка персонажа на холсте. {screen} -- объект экрана(холст)"""
         pygame.draw.circle(screen, WHITE, (self.x, self.y), self.radius)
         for bullet in self.bullets:
-            bullet.draw()
+            bullet.draw(screen)
+
+    def draw_health_bar(self):
+        """Отрисовка полоски здоровья игрока."""
+        bar_width = 200
+        bar_height = 20
+        health_ratio = self.health / 100
+        current_width = int(bar_width * health_ratio)
+        pygame.draw.rect(screen, HEALTH_BAR_COLOR, (10, 10, current_width, bar_height))
+        pygame.draw.rect(screen, WHITE, (10, 10, bar_width, bar_height), 2)
 
     def move(self, dx, dy):
         """изменение координат. выполняет перемещение персонажа по экрану."""
@@ -108,7 +119,13 @@ class Player:
 
     def is_hit(self, player, enemy):
         """Check if the enemy is hit by a player."""
-        return player.rect.colliderect(enemy.rect)
+        # return player.rect.colliderect(enemy.rect)
+
+    def take_damage(self, amount):
+        """Уменьшение здоровья игрока."""
+        self.health -= amount
+        if self.health <= 0:
+            game_over()
 
 
 def get_window_position():
@@ -126,7 +143,7 @@ class Bullet:
         self.dx = 0
         self.dy = -BULLET_SPEED
 
-    def draw(self):
+    def draw(self, screen):
         f"""Отрисовка пули на холсте. принимает параметр {screen} -- холст"""
         pygame.draw.circle(screen, RED, (self.x, self.y), self.radius)
 
@@ -157,8 +174,20 @@ class Enemy:
         self.health = health
         self.mass = health
 
-    def draw(self):
+    def draw(self, screen):
         pygame.draw.circle(screen, ENEMY_COLOR, (self.x, self.y), self.radius)
+        self.draw_health_bar(screen)
+
+    def draw_health_bar(self, screen):
+        """Отображение полоски здоровья врага."""
+        bar_width = 40
+        bar_height = 5
+        health_ratio = self.health / self.mass
+        current_width = int(bar_width * health_ratio)
+        bar_x = self.x - bar_width // 2
+        bar_y = self.y - self.radius - 10
+        pygame.draw.rect(screen, RED, (bar_x, bar_y, current_width, bar_height))
+        pygame.draw.rect(screen, WHITE, (bar_x, bar_y, bar_width, bar_height), 1)
 
     def update(self):
         pass
@@ -167,6 +196,11 @@ class Enemy:
         """Check if the enemy is hit by a bullet."""
         distance = math.sqrt((self.x - bullet.x) ** 2 + (self.y - bullet.y) ** 2)
         return distance < self.radius + bullet.radius
+
+    def is_colliding_with_player(self, player):
+        """Check if the enemy collides with the player."""
+        distance = math.sqrt((self.x - player.x) ** 2 + (self.y - player.y) ** 2)
+        return distance < self.radius + player.radius
 
 
 class Point:
@@ -200,6 +234,37 @@ def move_win(coordinates):
     w, h = pygame.display.get_surface().get_size()
     windll.user32.MoveWindow(hwnd, -coordinates[0], -coordinates[1], w, h, False)
 
+def perks_menu():
+    showing_perks = True
+    double_bullet_speed = False
+
+    while showing_perks:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+        screen.fill(BLACK)
+
+        perks_text = font.render("Perks Menu", True, WHITE)
+        double_speed_text = font.render("Нажмите 1: Двойная скорость", True, WHITE)
+        back_text = font.render("Нажмите B для возвращения", True, WHITE)
+
+        screen.blit(perks_text, (WINDOW_WIDTH // 2 - perks_text.get_width() // 2, WINDOW_HEIGHT // 2 - 100))
+        screen.blit(double_speed_text, (WINDOW_WIDTH // 2 - double_speed_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
+        screen.blit(back_text, (WINDOW_WIDTH // 2 - back_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_b]:
+            showing_perks = False
+        if keys[pygame.K_1]:
+            global BULLET_SPEED
+            BULLET_SPEED *= 2
+            showing_perks = False
+
+        pygame.display.update()
+        clock.tick(15)
+
 
 def game_loop():
     """Главный цикл программы со всеми обработчиками."""
@@ -228,11 +293,9 @@ def game_loop():
             player.move(-5, 0)
         if keys[pygame.K_d]:
             player.move(5, 0)
-        if keys[pygame.K_SPACE]:
-            screen.fill(BLACK)
-            # здесь будет создание нового окна с меню паузы
-            # https://translated.turbopages.org/proxy_u/en-ru.ru.5d415dfc-6776baf6-dbd2b2e1-74722d776562/https/www.geeksforgeeks.org/how-to-use-multiple-screens-on-pygame
-            print("нажат пробел ")
+        if keys[pygame.K_RETURN]:
+            perks_menu()
+
         counter_x = WINDOW_WIDTH - 100
         counter_y = 10
         counter_health_x = 10
@@ -275,6 +338,10 @@ def game_loop():
                 if player.is_hit(player, enemy):
                     PLAYER_HEALTH -= 1
 
+        for enemy in enemies:
+            if enemy.is_colliding_with_player(player):
+                player.take_damage(10)
+
         for point in points:
             if point.is_hit(player):
                 points.remove(point)
@@ -284,8 +351,9 @@ def game_loop():
         screen.blit(counter_text, (counter_x, counter_y))
         screen.blit(counter_health_text, (counter_health_x, counter_health_y))
         player.draw()
+        player.draw_health_bar()
         for enemy in enemies:
-            enemy.draw()
+            enemy.draw(screen)
         for point in points:
             point.draw()
 
@@ -315,5 +383,5 @@ def game_over():
     print('игра окончена')
     exit()
 
-
 game_loop()
+
