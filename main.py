@@ -9,8 +9,9 @@ enemy_bullets = []
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 PLAYER_RADIUS = 15
-BULLET_RADIUS = 5
+BULLET_RADIUS = 6
 BULLET_SPEED = 7
+BULLET_COLOR = (255, 255, 255)
 SHRINK_AMOUNT = 30
 SHRINK_INTERVAL = 75
 ENEMY_RADIUS = 20
@@ -144,7 +145,7 @@ class Bullet:
 
     def draw(self, screen):
         """Отрисовка пули на холсте."""
-        pygame.draw.circle(screen, RED, (self.x, self.y), self.radius)
+        pygame.draw.circle(screen, BULLET_COLOR, (self.x, self.y), self.radius)
 
     def update(self):
         """Обновление положения пули на экране."""
