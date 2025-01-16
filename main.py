@@ -6,10 +6,11 @@ import math
 enemies = []
 points = []
 enemy_bullets = []
+PLAYER_SCALE = 50
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
-PLAYER_RADIUS = 15
-BULLET_RADIUS = 6
+PLAYER_RADIUS = 25
+BULLET_RADIUS = 10
 BULLET_SPEED = 7
 BULLET_COLOR = (255, 255, 255)
 SHRINK_AMOUNT = 30
@@ -45,13 +46,16 @@ class Player:
         self.invulnerable_time = 0  # Время бессмертия
         self.invulnerable_duration = 1000  # 1 секунда бессмертия
 
-    def draw(self):
+    def draw(self, counter_text, counter_x, counter_y):
         """Отрисовка персонажа на холсте."""
         if self.invulnerable_time > 0:
             # Мигаем игрока, когда он бессмертен
             if (pygame.time.get_ticks() // 100) % 2 == 0:
                 return  # Не отрисовываем игрока
-        pygame.draw.circle(screen, WHITE, (self.x, self.y), self.radius)
+        sprite_image = pygame.image.load('data/pic/player1.png')
+        sprite_image = pygame.transform.scale(sprite_image, (PLAYER_SCALE, PLAYER_SCALE))
+        screen.blit(sprite_image, (self.x - PLAYER_SCALE // 2, self.y - PLAYER_SCALE // 2))
+        screen.blit(counter_text, (counter_x, counter_y))
         for bullet in self.bullets:
             bullet.draw(screen)
 
@@ -165,16 +169,19 @@ class Bullet:
 
 
 class Enemy:
-    def __init__(self, x, y, health):
+    def __init__(self, x, y, health, type_en):
         self.x = x
         self.y = y
+        self.type = type_en
         self.radius = ENEMY_RADIUS
         self.health = health
         self.mass = health
         self.speed = 2  # Скорость обычного врага
 
-    def draw(self, screen):
-        pygame.draw.circle(screen, ENEMY_COLOR, (self.x, self.y), self.radius)  # Зеленый цвет для обычных врагов
+    def draw(self, screen, enemy):
+        sprite_image = pygame.image.load('data/pic/1_rang_enemy.png')
+        sprite_image = pygame.transform.scale(sprite_image, (50, 50))
+        screen.blit(sprite_image, (self.x - 25, self.y - 25))
         self.draw_health_bar(screen)
 
     def draw_health_bar(self, screen):
@@ -209,15 +216,30 @@ class Enemy:
         distance = math.sqrt((self.x - player.x) ** 2 + (self.y - player.y) ** 2)
         return distance < self.radius + player.radius
 
+
 class ShootingEnemy(Enemy):
-    def __init__(self, x, y, health):
-        super().__init__(x, y, health)
+    def __init__(self, x, y, health, type_en):
+        super().__init__(x, y, health, type)
         self.shoot_cooldown = 1000  # Время между выстрелами
+        self.type = type_en
         self.last_shot_time = pygame.time.get_ticks()
         self.speed = 1  # Уменьшенная скорость стреляющего врага
 
-    def draw(self, screen):
-        pygame.draw.circle(screen, (128, 0, 128), (self.x, self.y), self.radius)  # Фиолетовый цвет
+    def update(self, player):
+        """Движение врага к игроку."""
+        dx = player.x - self.x
+        dy = player.y - self.y
+        distance = math.sqrt(dx ** 2 + dy ** 2)
+        if distance > 0:
+            dx /= distance  # Нормализация вектора
+            dy /= distance
+            self.x += dx * self.speed
+            self.y += dy * self.speed
+
+    def draw(self, screen, enemy):
+        sprite_image = pygame.image.load('data/pic/3_rang_enemy.png')
+        sprite_image = pygame.transform.scale(sprite_image, (50, 50))
+        screen.blit(sprite_image, (self.x - 25, self.y - 25))
         self.draw_health_bar(screen)
 
     def update(self, player):
@@ -231,6 +253,7 @@ class ShootingEnemy(Enemy):
             bullet.set_velocity_towards_cursor(player.x, player.y)
             enemy_bullets.append(bullet)  # Добавление пули в список пуль врагов
             self.last_shot_time = current_time
+
 
 class Point:
     def __init__(self, mass, x, y):
@@ -296,10 +319,12 @@ def perks_menu():
         pygame.display.update()
         clock.tick(15)
 
+
 crosshair_image = pygame.Surface((20, 20), pygame.SRCALPHA)  # Создаем поверхность для перекрестия
 pygame.draw.line(crosshair_image, WHITE, (10, 0), (10, 20), 2)  # Вертикальная линия
 pygame.draw.line(crosshair_image, WHITE, (0, 10), (20, 10), 2)  # Горизонтальная линия
 pygame.mouse.set_visible(False)
+
 
 def game_loop():
     """Главный цикл программы со всеми обработчиками."""
@@ -377,7 +402,8 @@ def game_loop():
             bullet.update()
             if bullet.is_outside_screen():
                 enemy_bullets.remove(bullet)
-            if bullet.x < player.x + PLAYER_RADIUS and bullet.x > player.x - PLAYER_RADIUS and bullet.y < player.y + PLAYER_RADIUS and bullet.y > player.y - PLAYER_RADIUS:
+            if (player.x + PLAYER_RADIUS > bullet.x > player.x - PLAYER_RADIUS
+                    and player.y + PLAYER_RADIUS > bullet.y > player.y - PLAYER_RADIUS):
                 player.take_damage(5)
                 enemy_bullets.remove(bullet)
 
@@ -387,11 +413,10 @@ def game_loop():
                 COUNT_OF_POINTS += 1
 
         screen.fill(BLACK)
-        screen.blit(counter_text, (counter_x, counter_y))
-        player.draw()
+        player.draw(counter_text, counter_x, counter_y)
         player.draw_health_bar()
         for enemy in enemies:
-            enemy.draw(screen)
+            enemy.draw(screen, enemy)
         for bullet in enemy_bullets:  # Отрисовка пуль врагов
             bullet.draw(screen)  # Используем метод draw для пуль врагов
         for point in points:
@@ -404,6 +429,7 @@ def game_loop():
 
         pygame.display.update()
         clock.tick(60)
+
 
 def spawn_enemy():
     side = random.choice(['top', 'bottom', 'left', 'right'])
@@ -422,13 +448,14 @@ def spawn_enemy():
 
     # Случайный выбор типа врага (обычный или стреляющий)
     if random.random() < 0.5:  # 50% шанс на создание стреляющего врага
-        enemies.append(ShootingEnemy(x, y, 2))
+        enemies.append(ShootingEnemy(x, y, 2, 3))
     else:
-        enemies.append(Enemy(x, y, 2))
+        enemies.append(Enemy(x, y, 2, 1))
+
 
 def game_over():
     print('игра окончена')
     exit()
 
-game_loop()
 
+game_loop()
