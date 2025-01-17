@@ -1,3 +1,4 @@
+import os
 from ctypes import windll
 import pygame
 import random
@@ -10,8 +11,8 @@ PLAYER_SCALE = 50
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 PLAYER_RADIUS = 25
-BULLET_RADIUS = 10
-BULLET_SPEED = 7
+BULLET_RADIUS = 5
+BULLET_SPEED = 10
 BULLET_COLOR = (255, 255, 255)
 SHRINK_AMOUNT = 30
 SHRINK_INTERVAL = 75
@@ -27,9 +28,12 @@ HEALTH_BAR_COLOR = (0, 128, 0)
 COUNT_OF_POINTS = 0
 TOTAL_ENEMIES = 0
 
+os.environ['SDL_VIDEO_WINDOW_POS'] = "20, 50"
+pygame.mixer.pre_init()
+pygame.mixer.init()
 pygame.init()
 font = pygame.font.SysFont('arial', 24)
-screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), )
 pygame.display.set_caption("Shooting Game")
 clock = pygame.time.Clock()
 pygame.event.set_grab(True)
@@ -169,6 +173,17 @@ class Bullet:
         self.dy = math.sin(angle) * BULLET_SPEED
 
 
+class EnemyBullet(Bullet):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+
+    def draw(self, screen):
+        """Отрисовка пули на холсте."""
+        sprite_image = pygame.image.load('data/pic/bullet_for_enemy.png')
+        sprite_image = pygame.transform.scale(sprite_image, (100, 100))
+        screen.blit(sprite_image, (self.x - 50, self.y - 50))
+
+
 class Enemy:
     def __init__(self, x, y, health, type_en):
         self.x = x
@@ -250,7 +265,7 @@ class ShootingEnemy(Enemy):
     def shoot(self, player):
         current_time = pygame.time.get_ticks()
         if current_time - self.last_shot_time >= self.shoot_cooldown:
-            bullet = Bullet(self.x, self.y)
+            bullet = EnemyBullet(self.x, self.y)
             bullet.set_velocity_towards_cursor(player.x, player.y)
             enemy_bullets.append(bullet)  # Добавление пули в список пуль врагов
             self.last_shot_time = current_time
@@ -337,7 +352,7 @@ def game_loop():
         pygame.mixer.music.load('data/music/02. Windowframe.mp3')
     else:
         pygame.mixer.music.load('data/music/03. Windowchill.mp3')
-    pygame.mixer.music.play()
+    pygame.mixer.music.play(loops=-1)
 
     while True:
         for event in pygame.event.get():
@@ -465,8 +480,11 @@ def spawn_enemy():
         y = random.randint(0, WINDOW_HEIGHT)
 
     # Случайный выбор типа врага (обычный или стреляющий)
-    if random.random() < 0.5:  # 50% шанс на создание стреляющего врага
-        enemies.append(ShootingEnemy(x, y, 2, 3))
+    if TOTAL_ENEMIES >= 25 + random.randint(0, 5):
+        if random.random() < 0.5:  # 50% шанс на создание стреляющего врага
+            enemies.append(ShootingEnemy(x, y, 2, 3))
+        else:
+            enemies.append(Enemy(x, y, 2, 1))
     else:
         enemies.append(Enemy(x, y, 2, 1))
 
@@ -475,6 +493,10 @@ def game_over():
     showing_window = True
     game_over_text = font.render("игра окончена", True, WHITE)
     press_f_to_respect = font.render("Нажмите [пробел] для завершения", True, WHITE)
+    score = font.render(f"Ваш счёт: {TOTAL_ENEMIES * pygame.time.get_ticks() // 10000}", True, WHITE)
+    pygame.mixer_music.stop()
+    pygame.mixer.music.load('data/music/mixkit-game-level-music-689.wav')
+    pygame.mixer.music.play(loops = -1)
     while showing_window:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -485,6 +507,7 @@ def game_over():
         screen.blit(game_over_text, (WINDOW_WIDTH // 2 - game_over_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
         screen.blit(press_f_to_respect, (WINDOW_WIDTH // 2 - press_f_to_respect.get_width()
                                          // 2, WINDOW_HEIGHT // 2 + 50))
+        screen.blit(score, (WINDOW_WIDTH // 2 - score.get_width() // 2, WINDOW_HEIGHT // 2 + 100))
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:
