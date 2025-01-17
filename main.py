@@ -18,13 +18,14 @@ SHRINK_INTERVAL = 75
 ENEMY_RADIUS = 20
 ENEMY_COLOR = (0, 255, 0)
 POINT_COLOR = (128, 0, 128)
-SPAWN_INTERVAL = 2000
+SPAWN_INTERVAL = 6000
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 HEALTH_BAR_COLOR = (0, 128, 0)
 
 COUNT_OF_POINTS = 0
+TOTAL_ENEMIES = 0
 
 pygame.init()
 font = pygame.font.SysFont('arial', 24)
@@ -281,15 +282,8 @@ class Point:
         pass
 
 
-def move_win(coordinates):
-    hwnd = pygame.display.get_wm_info()['window']
-    w, h = pygame.display.get_surface().get_size()
-    windll.user32.MoveWindow(hwnd, -coordinates[0], -coordinates[1], w, h, False)
-
-
 def perks_menu():
     showing_perks = True
-    double_bullet_speed = False
 
     while showing_perks:
         for event in pygame.event.get():
@@ -331,10 +325,19 @@ def game_loop():
     global points, COUNT_OF_POINTS
     global enemies, enemy_bullets  # Добавьте enemy_bullets в глобальные переменные
     global WINDOW_WIDTH, WINDOW_HEIGHT, screen
-    global player
+    global player, TOTAL_ENEMIES, SHRINK_INTERVAL, SPAWN_INTERVAL
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
     last_spawn_time = pygame.time.get_ticks()
     last_shrink_time = pygame.time.get_ticks()
+    first_one = True
+
+    if random.randint(1, 3) == 1:
+        pygame.mixer.music.load('data/music/01. Windowkiller.mp3')
+    elif random.randint(1, 3) == 2:
+        pygame.mixer.music.load('data/music/02. Windowframe.mp3')
+    else:
+        pygame.mixer.music.load('data/music/03. Windowchill.mp3')
+    pygame.mixer.music.play()
 
     while True:
         for event in pygame.event.get():
@@ -355,6 +358,16 @@ def game_loop():
             player.move(5, 0)
         if keys[pygame.K_SPACE]:
             perks_menu()
+        if TOTAL_ENEMIES % 10 == 0:
+            if TOTAL_ENEMIES != 0:
+                if first_one:
+                    SHRINK_INTERVAL -= 5
+                    SPAWN_INTERVAL -= 100
+                    first_one = False
+        if TOTAL_ENEMIES == 1:
+            SHRINK_INTERVAL = 75
+        elif TOTAL_ENEMIES == 0:
+            SHRINK_INTERVAL -= 5
 
         counter_x = WINDOW_WIDTH - 100
         counter_y = 10
@@ -375,7 +388,7 @@ def game_loop():
 
         counter_text = font.render(f"{COUNT_OF_POINTS}", True, POINT_COLOR)
         current_time = pygame.time.get_ticks()
-        if current_time - last_spawn_time >= SPAWN_INTERVAL:
+        if current_time - last_spawn_time >= SPAWN_INTERVAL + random.randint(-200, 200):
             spawn_enemy()
             last_spawn_time = current_time
 
@@ -385,6 +398,10 @@ def game_loop():
                 if enemy.is_hit(bullet):
                     if enemy.health - 1 == 0:
                         enemies.remove(enemy)
+                        TOTAL_ENEMIES += 1
+                        first_one = True
+                        if TOTAL_ENEMIES == 1:
+                            SPAWN_INTERVAL = 2000
                         points.append(Point(enemy.mass, enemy.x, enemy.y))
                         player.bullets.remove(bullet)
                         break
