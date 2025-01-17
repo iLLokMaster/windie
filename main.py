@@ -476,4 +476,5 @@ def game_over():
             game_over_text = font.render("спасибо за респект", True, WHITE)
         pygame.display.update()
 
+
 game_loop()
