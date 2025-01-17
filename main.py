@@ -331,6 +331,7 @@ def game_loop():
     global points, COUNT_OF_POINTS
     global enemies, enemy_bullets  # Добавьте enemy_bullets в глобальные переменные
     global WINDOW_WIDTH, WINDOW_HEIGHT, screen
+    global player
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
     last_spawn_time = pygame.time.get_ticks()
     last_shrink_time = pygame.time.get_ticks()
@@ -454,8 +455,25 @@ def spawn_enemy():
 
 
 def game_over():
-    print('игра окончена')
-    exit()
+    showing_window = True
+    game_over_text = font.render("игра окончена", True, WHITE)
+    press_f_to_respect = font.render("Нажмите [пробел] для завершения", True, WHITE)
+    while showing_window:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
 
+        screen.fill(BLACK)
+        screen.blit(game_over_text, (WINDOW_WIDTH // 2 - game_over_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
+        screen.blit(press_f_to_respect, (WINDOW_WIDTH // 2 - press_f_to_respect.get_width()
+                                         // 2, WINDOW_HEIGHT // 2 + 50))
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_SPACE]:
+            exit()
+        if keys[pygame.K_f]:
+            game_over_text = font.render("спасибо за респект", True, WHITE)
+        pygame.display.update()
 
 game_loop()
