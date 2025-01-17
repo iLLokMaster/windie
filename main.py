@@ -1,5 +1,4 @@
 import os
-from ctypes import windll
 import pygame
 import random
 import math
@@ -62,7 +61,7 @@ class Player:
         screen.blit(sprite_image, (self.x - PLAYER_SCALE // 2, self.y - PLAYER_SCALE // 2))
         screen.blit(counter_text, (counter_x, counter_y))
         for bullet in self.bullets:
-            bullet.draw(screen)
+            bullet.draw()
 
     def draw_health_bar(self):
         """Отрисовка полоски здоровья игрока."""
@@ -152,7 +151,7 @@ class Bullet:
         self.dx = 0
         self.dy = -BULLET_SPEED
 
-    def draw(self, screen):
+    def draw(self):
         """Отрисовка пули на холсте."""
         pygame.draw.circle(screen, BULLET_COLOR, (self.x, self.y), self.radius)
 
@@ -177,7 +176,7 @@ class EnemyBullet(Bullet):
     def __init__(self, x, y):
         super().__init__(x, y)
 
-    def draw(self, screen):
+    def draw(self):
         """Отрисовка пули на холсте."""
         sprite_image = pygame.image.load('data/pic/bullet_for_enemy.png')
         sprite_image = pygame.transform.scale(sprite_image, (100, 100))
@@ -194,13 +193,13 @@ class Enemy:
         self.mass = health
         self.speed = 2  # Скорость обычного врага
 
-    def draw(self, screen, enemy):
+    def draw(self, enemy):
         sprite_image = pygame.image.load('data/pic/1_rang_enemy.png')
         sprite_image = pygame.transform.scale(sprite_image, (50, 50))
         screen.blit(sprite_image, (self.x - 25, self.y - 25))
-        self.draw_health_bar(screen)
+        self.draw_health_bar()
 
-    def draw_health_bar(self, screen):
+    def draw_health_bar(self):
         """Отображение полоски здоровья врага."""
         bar_width = 40
         bar_height = 5
@@ -211,7 +210,7 @@ class Enemy:
         pygame.draw.rect(screen, RED, (bar_x, bar_y, current_width, bar_height))
         pygame.draw.rect(screen, WHITE, (bar_x, bar_y, bar_width, bar_height), 1)
 
-    def update(self, player):
+    def update(self):
         """Движение врага к игроку."""
         dx = player.x - self.x
         dy = player.y - self.y
@@ -227,7 +226,7 @@ class Enemy:
         distance = math.sqrt((self.x - bullet.x) ** 2 + (self.y - bullet.y) ** 2)
         return distance < self.radius + bullet.radius
 
-    def is_colliding_with_player(self, player):
+    def is_colliding_with_player(self):
         """Проверка, столкнулся ли враг с игроком."""
         distance = math.sqrt((self.x - player.x) ** 2 + (self.y - player.y) ** 2)
         return distance < self.radius + player.radius
@@ -241,7 +240,7 @@ class ShootingEnemy(Enemy):
         self.last_shot_time = pygame.time.get_ticks()
         self.speed = 1  # Уменьшенная скорость стреляющего врага
 
-    def update(self, player):
+    def update(self):
         """Движение врага к игроку."""
         dx = player.x - self.x
         dy = player.y - self.y
@@ -252,17 +251,17 @@ class ShootingEnemy(Enemy):
             self.x += dx * self.speed
             self.y += dy * self.speed
 
-    def draw(self, screen, enemy):
+    def draw(self, enemy):
         sprite_image = pygame.image.load('data/pic/3_rang_enemy.png')
         sprite_image = pygame.transform.scale(sprite_image, (50, 50))
         screen.blit(sprite_image, (self.x - 25, self.y - 25))
-        self.draw_health_bar(screen)
+        self.draw_health_bar()
 
-    def update(self, player):
-        super().update(player)  # Движение к игроку
-        self.shoot(player)  # Попытка стрельбы
+    def update(self):
+        super().update()  # Движение к игроку
+        self.shoot()  # Попытка стрельбы
 
-    def shoot(self, player):
+    def shoot(self):
         current_time = pygame.time.get_ticks()
         if current_time - self.last_shot_time >= self.shoot_cooldown:
             bullet = EnemyBullet(self.x, self.y)
@@ -288,7 +287,7 @@ class Point:
     def draw(self):
         pygame.draw.circle(screen, POINT_COLOR, (self.x, self.y), self.radius)
 
-    def is_hit(self, player):
+    def is_hit(self):
         """Проверка, попал ли игрок в поинт."""
         distance = math.sqrt((self.x - player.x) ** 2 + (self.y - player.y) ** 2)
         return distance < self.radius + player.radius
@@ -426,8 +425,8 @@ def game_loop():
 
         # Обновление и проверка столкновений врагов
         for enemy in enemies:
-            enemy.update(player)  # Обновляем врагов, чтобы они двигались к игроку
-            if enemy.is_colliding_with_player(player):
+            enemy.update()  # Обновляем врагов, чтобы они двигались к игроку
+            if enemy.is_colliding_with_player():
                 player.take_damage(10)
 
         # Обработка столкновений пуль врагов с игроком
@@ -441,7 +440,7 @@ def game_loop():
                 enemy_bullets.remove(bullet)
 
         for point in points:
-            if point.is_hit(player):
+            if point.is_hit():
                 points.remove(point)
                 COUNT_OF_POINTS += 1
 
@@ -449,9 +448,9 @@ def game_loop():
         player.draw(counter_text, counter_x, counter_y)
         player.draw_health_bar()
         for enemy in enemies:
-            enemy.draw(screen, enemy)
+            enemy.draw(enemy)
         for bullet in enemy_bullets:  # Отрисовка пуль врагов
-            bullet.draw(screen)  # Используем метод draw для пуль врагов
+            bullet.draw()  # Используем метод draw для пуль врагов
         for point in points:
             point.draw()
 
