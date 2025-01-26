@@ -47,9 +47,18 @@ class Player:
         self.shoot_cooldown = 500
         self.last_shot_time = pygame.time.get_ticks()
         self.health = 100
+        self.max_health = 100  # Добавлено: максимальное здоровье
         self.invulnerable_time = 0  # Время бессмертия
         self.invulnerable_duration = 1000  # 1 секунда бессмертия
 
+    def draw_health_bar(self):
+        """Отрисовка полоски здоровья игрока."""
+        bar_width = 200
+        bar_height = 20
+        health_ratio = self.health / self.max_health  # Используем max_health
+        current_width = int(bar_width * health_ratio)
+        pygame.draw.rect(screen, HEALTH_BAR_COLOR, (10, 10, current_width, bar_height))
+        pygame.draw.rect(screen, WHITE, (10, 10, bar_width, bar_height), 2)
     def draw(self, counter_text, counter_x, counter_y):
         """Отрисовка персонажа на холсте."""
         if self.invulnerable_time > 0:
@@ -309,12 +318,18 @@ def perks_menu():
 
         perks_text = font.render("Perks Menu", True, WHITE)
         double_speed_text = font.render("Нажмите 1: Двойная скорость", True, WHITE)
+        increase_health_text = font.render("Нажмите 2: Увеличить здоровье", True, WHITE)
+        increase_health_limit_text = font.render("Нажмите 3: Увеличить лимит здоровья", True, WHITE)
         back_text = font.render("Нажмите B для возвращения", True, WHITE)
 
-        screen.blit(perks_text, (WINDOW_WIDTH // 2 - perks_text.get_width() // 2, WINDOW_HEIGHT // 2 - 100))
+        screen.blit(perks_text, (WINDOW_WIDTH // 2 - perks_text.get_width() // 2, WINDOW_HEIGHT // 2 - 150))
         screen.blit(double_speed_text,
-                    (WINDOW_WIDTH // 2 - double_speed_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
-        screen.blit(back_text, (WINDOW_WIDTH // 2 - back_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
+                    (WINDOW_WIDTH // 2 - double_speed_text.get_width() // 2, WINDOW_HEIGHT // 2 - 100))
+        screen.blit(increase_health_text,
+                    (WINDOW_WIDTH // 2 - increase_health_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
+        screen.blit(increase_health_limit_text,
+                    (WINDOW_WIDTH // 2 - increase_health_limit_text.get_width() // 2, WINDOW_HEIGHT // 2))
+        screen.blit(back_text, (WINDOW_WIDTH // 2 - back_text.get_width() // 2, WINDOW_HEIGHT // 2 + 100))
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_b]:
@@ -323,9 +338,16 @@ def perks_menu():
             global BULLET_SPEED
             BULLET_SPEED *= 2
             showing_perks = False
+        if keys[pygame.K_2]:
+            player.health = min(player.health + 20, player.max_health)  # Увеличиваем здоровье
+            showing_perks = False
+        if keys[pygame.K_3]:
+            player.max_health += 20  # Увеличиваем лимит здоровья
+            showing_perks = False
 
         pygame.display.update()
         clock.tick(15)
+
 
 
 crosshair_image = pygame.Surface((20, 20), pygame.SRCALPHA)  # Создаем поверхность для перекрестия
@@ -460,7 +482,8 @@ def game_loop():
         screen.blit(crosshair_image, (cursor_x - 10, cursor_y - 10))  # Центрируем перекрестие
 
         pygame.display.update()
-        clock.tick(60)
+
+        clock.tick(30)
 
 
 def spawn_enemy():
