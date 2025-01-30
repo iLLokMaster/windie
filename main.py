@@ -112,33 +112,9 @@ class Player:
             if bullet.is_outside_screen():
                 self.bullets.remove(bullet)
 
-                # Расширение окна влево
-                if bullet.x <= 0:
-                    WINDOW_WIDTH += SHRINK_AMOUNT
-                    self.x += SHRINK_AMOUNT  # Сдвиг игрока вправо
-                    for other_bullet in self.bullets:
-                        other_bullet.x += SHRINK_AMOUNT  # Сдвиг всех пуль вправо
-                    for enemy in enemies:
-                        enemy.x += SHRINK_AMOUNT
-                    for point in points:
-                        point.x += SHRINK_AMOUNT
-                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-
                 # Расширение окна вправо
-                elif bullet.x >= WINDOW_WIDTH:
+                if bullet.x >= WINDOW_WIDTH:
                     WINDOW_WIDTH += SHRINK_AMOUNT
-                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-
-                # Расширение окна вверх
-                if bullet.y <= 0:
-                    WINDOW_HEIGHT += SHRINK_AMOUNT
-                    self.y += SHRINK_AMOUNT  # Сдвиг игрока вниз
-                    for other_bullet in self.bullets:
-                        other_bullet.y += SHRINK_AMOUNT  # Сдвиг всех пуль вниз
-                    for enemy in enemies:
-                        enemy.y += SHRINK_AMOUNT
-                    for point in points:
-                        point.y += SHRINK_AMOUNT
                     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
                 # Расширение окна вниз
