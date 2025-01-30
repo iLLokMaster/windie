@@ -62,6 +62,7 @@ class Player:
         current_width = int(bar_width * health_ratio)
         pygame.draw.rect(screen, HEALTH_BAR_COLOR, (10, 10, current_width, bar_height))
         pygame.draw.rect(screen, WHITE, (10, 10, bar_width, bar_height), 2)
+
     def draw(self, counter_text, counter_x, counter_y):
         """Отрисовка персонажа на холсте."""
         if self.invulnerable_time > 0:
@@ -88,6 +89,10 @@ class Player:
         """Изменение координат. Выполняет перемещение персонажа по экрану."""
         self.x += dx
         self.y += dy
+
+        # Ограничение движения в пределах окна
+        self.x = max(self.radius, min(self.x, WINDOW_WIDTH - self.radius))
+        self.y = max(self.radius, min(self.y, WINDOW_HEIGHT - self.radius))
 
     def shoot(self):
         """Создание и отрисовка пули."""
@@ -328,10 +333,14 @@ def perks_menu():
         back_text = font.render("Нажмите B для возвращения", True, WHITE)
 
         screen.blit(perks_text, (WINDOW_WIDTH // 2 - perks_text.get_width() // 2, WINDOW_HEIGHT // 2 - 150))
-        screen.blit(double_speed_text, (WINDOW_WIDTH // 2 - double_speed_text.get_width() // 2, WINDOW_HEIGHT // 2 - 100))
-        screen.blit(increase_health_text, (WINDOW_WIDTH // 2 - increase_health_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
-        screen.blit(increase_health_limit_text, (WINDOW_WIDTH // 2 - increase_health_limit_text.get_width() // 2, WINDOW_HEIGHT // 2))
-        screen.blit(show_health_bar_text, (WINDOW_WIDTH // 2 - show_health_bar_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
+        screen.blit(double_speed_text,
+                    (WINDOW_WIDTH // 2 - double_speed_text.get_width() // 2, WINDOW_HEIGHT // 2 - 100))
+        screen.blit(increase_health_text,
+                    (WINDOW_WIDTH // 2 - increase_health_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
+        screen.blit(increase_health_limit_text,
+                    (WINDOW_WIDTH // 2 - increase_health_limit_text.get_width() // 2, WINDOW_HEIGHT // 2))
+        screen.blit(show_health_bar_text,
+                    (WINDOW_WIDTH // 2 - show_health_bar_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
         screen.blit(back_text, (WINDOW_WIDTH // 2 - back_text.get_width() // 2, WINDOW_HEIGHT // 2 + 100))
 
         keys = pygame.key.get_pressed()
@@ -354,7 +363,6 @@ def perks_menu():
 
         pygame.display.update()
         clock.tick(15)
-
 
 
 crosshair_image = pygame.Surface((20, 20), pygame.SRCALPHA)  # Создаем поверхность для перекрестия
@@ -528,7 +536,7 @@ def game_over():
     score = font.render(f"Ваш счёт: {TOTAL_ENEMIES * pygame.time.get_ticks() // 10000}", True, WHITE)
     pygame.mixer_music.stop()
     pygame.mixer.music.load('data/music/mixkit-game-level-music-689.wav')
-    pygame.mixer.music.play(loops = -1)
+    pygame.mixer.music.play(loops=-1)
     while showing_window:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
