@@ -341,12 +341,6 @@ def perks_menu():
         clock.tick(15)
 
 
-crosshair_image = pygame.Surface((20, 20), pygame.SRCALPHA)  # Создаем поверхность для перекрестия
-pygame.draw.line(crosshair_image, WHITE, (10, 0), (10, 20), 2)  # Вертикальная линия
-pygame.draw.line(crosshair_image, WHITE, (0, 10), (20, 10), 2)  # Горизонтальная линия
-pygame.mouse.set_visible(False)
-
-
 def game_loop():
     """Главный цикл программы со всеми обработчиками."""
     global points, COUNT_OF_POINTS
@@ -359,13 +353,18 @@ def game_loop():
     last_shrink_time = pygame.time.get_ticks()
     first_one = True
 
+    crosshair_image = pygame.Surface((20, 20), pygame.SRCALPHA)  # Создаем поверхность для перекрестия
+    pygame.draw.line(crosshair_image, WHITE, (10, 0), (10, 20), 2)  # Вертикальная линия
+    pygame.draw.line(crosshair_image, WHITE, (0, 10), (20, 10), 2)  # Горизонтальная линия
+    pygame.mouse.set_visible(False)
+
     if random.randint(1, 3) == 1:
         pygame.mixer.music.load('data/music/01. Windowkiller.mp3')
     elif random.randint(1, 3) == 2:
         pygame.mixer.music.load('data/music/02. Windowframe.mp3')
     else:
         pygame.mixer.music.load('data/music/03. Windowchill.mp3')
-    pygame.mixer.music.play(loops=-1)
+    pygame.mixer.music.play(loops = -1)
 
     while True:
         for event in pygame.event.get():
@@ -399,6 +398,7 @@ def game_loop():
 
         counter_x = WINDOW_WIDTH - 100
         counter_y = 10
+        screen.fill(BLACK)
 
         # Уменьшение экрана
         current_time = pygame.time.get_ticks()
@@ -421,8 +421,9 @@ def game_loop():
             last_spawn_time = current_time
 
         # Обработка столкновений пуль игрока с врагами
-        for bullet in player.bullets[:]:
-            for enemy in enemies[:]:
+
+        for enemy in enemies[:]:
+            for bullet in player.bullets[:]:
                 if enemy.is_hit(bullet):
                     if enemy.health - 1 == 0:
                         enemies.remove(enemy)
@@ -436,9 +437,9 @@ def game_loop():
                     else:
                         enemy.health -= 1
                         break
+            enemy.draw(enemy)
 
-        # Обновление и проверка столкновений врагов
-        for enemy in enemies:
+            # Обновление и проверка столкновений врагов
             enemy.update()  # Обновляем врагов, чтобы они двигались к игроку
             if enemy.is_colliding_with_player():
                 player.take_damage(10)
@@ -452,20 +453,17 @@ def game_loop():
                     and player.y + PLAYER_RADIUS > bullet.y > player.y - PLAYER_RADIUS):
                 player.take_damage(5)
                 enemy_bullets.remove(bullet)
+            bullet.draw()  # Используем метод draw для пуль врагов
 
         for point in points:
             if point.is_hit():
                 points.remove(point)
                 COUNT_OF_POINTS += 1
-
-        screen.fill(BLACK)
-        player.draw(counter_text, counter_x, counter_y)
-        for enemy in enemies:
-            enemy.draw(enemy)
-        for bullet in enemy_bullets:  # Отрисовка пуль врагов
-            bullet.draw()  # Используем метод draw для пуль врагов
-        for point in points:
             point.draw()
+
+        player.draw(counter_text, counter_x, counter_y)
+
+
 
         # Получаем позицию курсора мыши
         cursor_x, cursor_y = pygame.mouse.get_pos()
@@ -512,7 +510,7 @@ def game_over():
     score = font.render(f"Ваш счёт: {TOTAL_ENEMIES * pygame.time.get_ticks() // 10000}", True, WHITE)
     pygame.mixer_music.stop()
     pygame.mixer.music.load('data/music/mixkit-game-level-music-689.wav')
-    pygame.mixer.music.play(loops=-1)
+    pygame.mixer.music.play(loops = -1)
     while showing_window:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
