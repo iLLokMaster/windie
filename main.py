@@ -3,6 +3,7 @@ import pygame
 import random
 import math
 
+# константы
 enemies = []
 points = []
 enemy_bullets = []
@@ -27,6 +28,7 @@ show_health_bar = False
 COUNT_OF_POINTS = 0
 TOTAL_ENEMIES = 0
 
+# настройка pygame и окна
 os.environ['SDL_VIDEO_WINDOW_POS'] = "20, 50"
 pygame.mixer.pre_init()
 pygame.mixer.init()
@@ -39,6 +41,7 @@ pygame.event.set_grab(True)
 
 
 class Player:
+    """сам персонаж и прикладные к нему ментоды"""
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -75,15 +78,6 @@ class Player:
         screen.blit(counter_text, (counter_x, counter_y))
         for bullet in self.bullets:
             bullet.draw()
-
-    def draw_health_bar(self):
-        """Отрисовка полоски здоровья игрока."""
-        bar_width = 200
-        bar_height = 20
-        health_ratio = self.health / 100
-        current_width = int(bar_width * health_ratio)
-        pygame.draw.rect(screen, HEALTH_BAR_COLOR, (10, 10, current_width, bar_height))
-        pygame.draw.rect(screen, WHITE, (10, 10, bar_width, bar_height), 2)
 
     def move(self, dx, dy):
         """Изменение координат. Выполняет перемещение персонажа по экрану."""
@@ -123,7 +117,7 @@ class Player:
                     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
     def take_damage(self, amount):
-        """Уменьшение здоровья игрока."""
+        """Уменьшение здоровья игрока при получении урона от врага"""
         if self.invulnerable_time <= 0:  # Проверка на бессмертие
             self.health -= amount
             if self.health <= 0:
@@ -137,6 +131,7 @@ class Player:
 
 
 class Bullet:
+    """пуля игрока"""
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -158,6 +153,7 @@ class Bullet:
         return self.x < 0 or self.x > WINDOW_WIDTH or self.y < 0 or self.y > WINDOW_HEIGHT
 
     def set_velocity_towards_cursor(self, cursor_x, cursor_y):
+        """расчёт направления движения пули"""
         dx = cursor_x - self.x
         dy = cursor_y - self.y
         angle = math.atan2(dy, dx)
@@ -166,6 +162,7 @@ class Bullet:
 
 
 class EnemyBullet(Bullet):
+    """специальная пуля для врага."""
     def __init__(self, x, y):
         super().__init__(x, y)
 
@@ -177,6 +174,8 @@ class EnemyBullet(Bullet):
 
 
 class Enemy:
+    """классический враг.
+    просто двигается на игрока и наносит урон после сопрокосновения"""
     def __init__(self, x, y, health, type_en):
         self.x = x
         self.y = y
@@ -187,6 +186,7 @@ class Enemy:
         self.speed = 2  # Скорость обычного врага
 
     def draw(self, enemy):
+        """отрисовка"""
         sprite_image = pygame.image.load('data/pic/1_rang_enemy.png')
         sprite_image = pygame.transform.scale(sprite_image, (50, 50))
         screen.blit(sprite_image, (self.x - 25, self.y - 25))
@@ -226,6 +226,8 @@ class Enemy:
 
 
 class ShootingEnemy(Enemy):
+    """одна из разновидностей врагов.
+    умеет стрелять"""
     def __init__(self, x, y, health, type_en):
         super().__init__(x, y, health, type)
         self.shoot_cooldown = 1000  # Время между выстрелами
@@ -243,18 +245,17 @@ class ShootingEnemy(Enemy):
             dy /= distance
             self.x += dx * self.speed
             self.y += dy * self.speed
+        self.shoot()
 
     def draw(self, enemy):
+        """отрисовка"""
         sprite_image = pygame.image.load('data/pic/3_rang_enemy.png')
         sprite_image = pygame.transform.scale(sprite_image, (50, 50))
         screen.blit(sprite_image, (self.x - 25, self.y - 25))
         self.draw_health_bar()
 
-    def update(self):
-        super().update()  # Движение к игроку
-        self.shoot()  # Попытка стрельбы
-
     def shoot(self):
+        """Стрельба врагов. создаётся пуля, летящая по прямой"""
         current_time = pygame.time.get_ticks()
         if current_time - self.last_shot_time >= self.shoot_cooldown:
             bullet = EnemyBullet(self.x, self.y)
@@ -264,8 +265,11 @@ class ShootingEnemy(Enemy):
 
 
 class Point:
+    """объект, выпадающий после нейтрализации врага.
+    при соприконовении с игроком пропадает и зачисляется на счёт"""
     def __init__(self, mass, x, y):
         """Создание нового поинта. вычисление его размера по количеству добавляемых очков"""
+        self.speed = 1.1
         self.mass = mass
         self.x = x
         self.y = y
@@ -278,6 +282,7 @@ class Point:
             self.radius = 7
 
     def draw(self):
+        """отрисовка."""
         pygame.draw.circle(screen, POINT_COLOR, (self.x, self.y), self.radius)
 
     def is_hit(self):
@@ -286,10 +291,19 @@ class Point:
         return distance < self.radius + player.radius
 
     def update(self):
-        pass
+        """обновление движения поинтов. они немного двигаются к игроку"""
+        dx = player.x - self.x
+        dy = player.y - self.y
+        distance = math.sqrt(dx ** 2 + dy ** 2)
+        if distance > 0:
+            dx /= distance  # Нормализация вектора
+            dy /= distance
+            self.x += dx * self.speed
+            self.y += dy * self.speed
 
 
 def perks_menu():
+    """Меню перков которое открывается при нажатии пробела."""
     global show_health_bar
     showing_perks = True
 
@@ -298,9 +312,9 @@ def perks_menu():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-
         screen.fill(BLACK)
 
+        # инициализация текста
         perks_text = font.render("Perks Menu", True, WHITE)
         double_speed_text = font.render("Нажмите 1: Двойная скорость", True, WHITE)
         increase_health_text = font.render("Нажмите 2: Увеличить здоровье", True, WHITE)
@@ -308,6 +322,7 @@ def perks_menu():
         show_health_bar_text = font.render("Нажмите 4: Показать полоску здоровья", True, WHITE)
         back_text = font.render("Нажмите B для возвращения", True, WHITE)
 
+        # отображение на экране
         screen.blit(perks_text, (WINDOW_WIDTH // 2 - perks_text.get_width() // 2, WINDOW_HEIGHT // 2 - 150))
         screen.blit(double_speed_text,
                     (WINDOW_WIDTH // 2 - double_speed_text.get_width() // 2, WINDOW_HEIGHT // 2 - 100))
@@ -319,6 +334,7 @@ def perks_menu():
                     (WINDOW_WIDTH // 2 - show_health_bar_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
         screen.blit(back_text, (WINDOW_WIDTH // 2 - back_text.get_width() // 2, WINDOW_HEIGHT // 2 + 100))
 
+        # обработка ввода
         keys = pygame.key.get_pressed()
         if keys[pygame.K_b]:
             showing_perks = False
@@ -353,11 +369,13 @@ def game_loop():
     last_shrink_time = pygame.time.get_ticks()
     first_one = True
 
-    crosshair_image = pygame.Surface((20, 20), pygame.SRCALPHA)  # Создаем поверхность для перекрестия
-    pygame.draw.line(crosshair_image, WHITE, (10, 0), (10, 20), 2)  # Вертикальная линия
-    pygame.draw.line(crosshair_image, WHITE, (0, 10), (20, 10), 2)  # Горизонтальная линия
+    # курсор(перекрестье)
+    crosshair_image = pygame.Surface((20, 20), pygame.SRCALPHA)
+    pygame.draw.line(crosshair_image, WHITE, (10, 0), (10, 20), 2)
+    pygame.draw.line(crosshair_image, WHITE, (0, 10), (20, 10), 2)
     pygame.mouse.set_visible(False)
 
+    # музыка в игре
     if random.randint(1, 3) == 1:
         pygame.mixer.music.load('data/music/01. Windowkiller.mp3')
     elif random.randint(1, 3) == 2:
@@ -371,7 +389,7 @@ def game_loop():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-
+        # обработка ввода
         if pygame.mouse.get_pressed()[0]:
             player.shoot()
         keys = pygame.key.get_pressed()
@@ -385,6 +403,7 @@ def game_loop():
             player.move(5, 0)
         if keys[pygame.K_SPACE]:
             perks_menu()
+        # постепенное усложнение игры
         if TOTAL_ENEMIES % 10 == 0:
             if TOTAL_ENEMIES != 0:
                 if first_one:
@@ -396,8 +415,6 @@ def game_loop():
         elif TOTAL_ENEMIES == 0:
             SHRINK_INTERVAL -= 5
 
-        counter_x = WINDOW_WIDTH - 100
-        counter_y = 10
         screen.fill(BLACK)
 
         # Уменьшение экрана
@@ -411,9 +428,11 @@ def game_loop():
                 player.x = min(player.x, WINDOW_WIDTH)
                 player.y = min(player.y, WINDOW_HEIGHT)
 
+        # обновление состояний
         player.update_bullets()
-        player.update()  # Обновление состояния игрока
+        player.update()
 
+        # счётчик поинтов
         counter_text = font.render(f"{COUNT_OF_POINTS}", True, POINT_COLOR)
         current_time = pygame.time.get_ticks()
         if current_time - last_spawn_time >= SPAWN_INTERVAL + random.randint(-200, 200):
@@ -421,7 +440,6 @@ def game_loop():
             last_spawn_time = current_time
 
         # Обработка столкновений пуль игрока с врагами
-
         for enemy in enemies[:]:
             for bullet in player.bullets[:]:
                 if enemy.is_hit(bullet):
@@ -453,32 +471,29 @@ def game_loop():
                     and player.y + PLAYER_RADIUS > bullet.y > player.y - PLAYER_RADIUS):
                 player.take_damage(5)
                 enemy_bullets.remove(bullet)
-            bullet.draw()  # Используем метод draw для пуль врагов
+            bullet.draw()
 
+        # обработка подбора поинта
         for point in points:
             if point.is_hit():
                 points.remove(point)
                 COUNT_OF_POINTS += 1
             point.draw()
-
+        counter_x = WINDOW_WIDTH - 100
+        counter_y = 10
         player.draw(counter_text, counter_x, counter_y)
-
-
-
-        # Получаем позицию курсора мыши
-        cursor_x, cursor_y = pygame.mouse.get_pos()
-        # Отрисовываем перекрестие прицела
-        screen.blit(crosshair_image, (cursor_x - 10, cursor_y - 10))  # Центрируем перекрестие
+        cursor_x, cursor_y = pygame.mouse.get_pos()  # Получаем позицию курсора мыши
+        screen.blit(crosshair_image, (cursor_x - 10, cursor_y - 10))  # Отрисовываем перекрестие прицела и Центрируем перекрестие
 
         if show_health_bar:
             player.draw_health_bar()
-
         pygame.display.update()
-
         clock.tick(30)
 
 
 def spawn_enemy():
+    """функция для спавна врагов"""
+    # рандомный выбор места спавна врага
     side = random.choice(['top', 'bottom', 'left', 'right'])
     if side == 'top':
         x = random.randint(0, WINDOW_WIDTH)
@@ -504,6 +519,7 @@ def spawn_enemy():
 
 
 def game_over():
+    # наполнение окна окончания игры
     showing_window = True
     game_over_text = font.render("игра окончена", True, WHITE)
     press_f_to_respect = font.render("Нажмите [пробел] для завершения", True, WHITE)
@@ -511,18 +527,21 @@ def game_over():
     pygame.mixer_music.stop()
     pygame.mixer.music.load('data/music/mixkit-game-level-music-689.wav')
     pygame.mixer.music.play(loops = -1)
+
     while showing_window:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
 
+        # отображение
         screen.fill(BLACK)
         screen.blit(game_over_text, (WINDOW_WIDTH // 2 - game_over_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
         screen.blit(press_f_to_respect, (WINDOW_WIDTH // 2 - press_f_to_respect.get_width()
                                          // 2, WINDOW_HEIGHT // 2 + 50))
         screen.blit(score, (WINDOW_WIDTH // 2 - score.get_width() // 2, WINDOW_HEIGHT // 2 + 100))
 
+        # обработка ввода
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:
             exit()
