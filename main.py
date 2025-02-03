@@ -317,15 +317,22 @@ class Point:
         return distance < self.radius + player.radius
 
     def update(self):
-        """обновление движения поинтов. они немного двигаются к игроку"""
+        """Обновление движения поинтов.
+        Если расстояние до игрока меньше порога, скорость притяжения увеличивается."""
         dx = player.x - self.x
         dy = player.y - self.y
         distance = math.sqrt(dx ** 2 + dy ** 2)
         if distance > 0:
-            dx /= distance  # Нормализация вектора
-            dy /= distance
-            self.x += dx * self.speed
-            self.y += dy * self.speed
+            dx_norm = dx / distance
+            dy_norm = dy / distance
+            # Если поинт находится на небольшом расстоянии от игрока,
+            # увеличиваем скорость притяжения (коэффициент можно настроить, например, 3)
+            if distance < 100:
+                attraction_speed = self.speed * 3
+            else:
+                attraction_speed = self.speed
+            self.x += dx_norm * attraction_speed
+            self.y += dy_norm * attraction_speed
 
 
 def perks_menu():
@@ -500,11 +507,14 @@ def game_loop():
             bullet.draw()
 
         # обработка подбора поинта
-        for point in points:
+        for point in points[:]:
             if point.is_hit():
                 points.remove(point)
                 COUNT_OF_POINTS += 1
+                continue  # переходим к следующему поинту, чтобы не обновлять уже удалённый объект
+            point.update()
             point.draw()
+
         counter_x = WINDOW_WIDTH - 100
         counter_y = 10
         player.draw(counter_text, counter_x, counter_y)
