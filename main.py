@@ -176,6 +176,7 @@ class EnemyBullet(Bullet):
 class Enemy:
     """классический враг.
     просто двигается на игрока и наносит урон после сопрокосновения"""
+
     def __init__(self, x, y, health, type_en):
         self.x = x
         self.y = y
@@ -184,6 +185,8 @@ class Enemy:
         self.health = health
         self.mass = health
         self.speed = 2  # Скорость обычного врага
+        self.invulnerable_time = 0  # Время защиты
+        self.invulnerable_duration = 300  # 0.3 секунды защиты
 
     def draw(self, enemy):
         """отрисовка"""
@@ -214,6 +217,19 @@ class Enemy:
             self.x += dx * self.speed
             self.y += dy * self.speed
 
+        # Обновление времени защиты
+        if self.invulnerable_time > 0:
+            self.invulnerable_time -= clock.get_time()  # Уменьшение времени защиты
+
+    def take_damage(self, amount):
+        """Уменьшение здоровья врага при получении урона от пули."""
+        if self.invulnerable_time <= 0:  # Проверка на защиту
+            self.health -= amount
+            if self.health <= 0:
+                # Здесь можно добавить логику для уничтожения врага
+                pass
+            self.invulnerable_time = self.invulnerable_duration  # Установка времени защиты
+
     def is_hit(self, bullet):
         """Проверка, попал ли враг в пулю."""
         distance = math.sqrt((self.x - bullet.x) ** 2 + (self.y - bullet.y) ** 2)
@@ -229,48 +245,22 @@ class ShootingEnemy(Enemy):
     """одна из разновидностей врагов.
     умеет стрелять"""
     def __init__(self, x, y, health, type_en):
-        super().__init__(x, y, health, type_en)
+        super().__init__(x, y, health, type)
         self.shoot_cooldown = 1000  # Время между выстрелами
         self.type = type_en
         self.last_shot_time = pygame.time.get_ticks()
         self.speed = 1  # Уменьшенная скорость стреляющего врага
 
     def update(self):
-        # Если атрибут направления ещё не задан, определяем его по положению врага.
-        if not hasattr(self, 'direction'):
-            if self.y <= 0:
-                self.direction = 'right'
-            elif self.x >= WINDOW_WIDTH:
-                self.direction = 'down'
-            elif self.y >= WINDOW_HEIGHT:
-                self.direction = 'left'
-            elif self.x <= 0:
-                self.direction = 'up'
-            else:
-                self.direction = 'right'
-
-        # Движение по периметру окна
-        if self.direction == 'right':
-            self.x += self.speed
-            if self.x >= WINDOW_WIDTH:
-                self.x = WINDOW_WIDTH
-                self.direction = 'down'
-        elif self.direction == 'down':
-            self.y += self.speed
-            if self.y >= WINDOW_HEIGHT:
-                self.y = WINDOW_HEIGHT
-                self.direction = 'left'
-        elif self.direction == 'left':
-            self.x -= self.speed
-            if self.x <= 0:
-                self.x = 0
-                self.direction = 'up'
-        elif self.direction == 'up':
-            self.y -= self.speed
-            if self.y <= 0:
-                self.y = 0
-                self.direction = 'right'
-
+        """Движение врага к игроку."""
+        dx = player.x - self.x
+        dy = player.y - self.y
+        distance = math.sqrt(dx ** 2 + dy ** 2)
+        if distance > 0:
+            dx /= distance  # Нормализация вектора
+            dy /= distance
+            self.x += dx * self.speed
+            self.y += dy * self.speed
         self.shoot()
 
     def draw(self, enemy):
@@ -317,27 +307,20 @@ class Point:
         return distance < self.radius + player.radius
 
     def update(self):
-        """Обновление движения поинтов.
-        Если расстояние до игрока меньше порога, скорость притяжения увеличивается."""
+        """обновление движения поинтов. они немного двигаются к игроку"""
         dx = player.x - self.x
         dy = player.y - self.y
         distance = math.sqrt(dx ** 2 + dy ** 2)
         if distance > 0:
-            dx_norm = dx / distance
-            dy_norm = dy / distance
-            # Если поинт находится на небольшом расстоянии от игрока,
-            # увеличиваем скорость притяжения (коэффициент можно настроить, например, 3)
-            if distance < 100:
-                attraction_speed = self.speed * 3
-            else:
-                attraction_speed = self.speed
-            self.x += dx_norm * attraction_speed
-            self.y += dy_norm * attraction_speed
+            dx /= distance  # Нормализация вектора
+            dy /= distance
+            self.x += dx * self.speed
+            self.y += dy * self.speed
 
 
 def perks_menu():
     """Меню перков которое открывается при нажатии пробела."""
-    global show_health_bar
+    global show_health_bar, COUNT_OF_POINTS
     showing_perks = True
 
     while showing_perks:
@@ -349,10 +332,10 @@ def perks_menu():
 
         # инициализация текста
         perks_text = font.render("Perks Menu", True, WHITE)
-        double_speed_text = font.render("Нажмите 1: Двойная скорость", True, WHITE)
-        increase_health_text = font.render("Нажмите 2: Увеличить здоровье", True, WHITE)
-        increase_health_limit_text = font.render("Нажмите 3: Увеличить лимит здоровья", True, WHITE)
-        show_health_bar_text = font.render("Нажмите 4: Показать полоску здоровья", True, WHITE)
+        double_speed_text = font.render("Нажмите 1: Двойная скорость (1 очко)", True, WHITE)
+        increase_health_text = font.render("Нажмите 2: Увеличить здоровье (1 очко)", True, WHITE)
+        increase_health_limit_text = font.render("Нажмите 3: Увеличить лимит здоровья (1 очко)", True, WHITE)
+        show_health_bar_text = font.render("Нажмите 4: Показать полоску здоровья (1 очко)", True, WHITE)
         back_text = font.render("Нажмите B для возвращения", True, WHITE)
 
         # отображение на экране
@@ -371,19 +354,23 @@ def perks_menu():
         keys = pygame.key.get_pressed()
         if keys[pygame.K_b]:
             showing_perks = False
-        if keys[pygame.K_1]:
+        if keys[pygame.K_1] and COUNT_OF_POINTS > 0:
             global BULLET_SPEED
             BULLET_SPEED *= 2
+            COUNT_OF_POINTS -= 1  # Уменьшаем количество очков
             showing_perks = False
-        if keys[pygame.K_2]:
+        if keys[pygame.K_2] and COUNT_OF_POINTS > 0:
             player.health = min(player.health + 20, player.max_health)  # Увеличиваем здоровье
+            COUNT_OF_POINTS -= 1  # Уменьшаем количество очков
             showing_perks = False
-        if keys[pygame.K_3]:
+        if keys[pygame.K_3] and COUNT_OF_POINTS > 0:
             player.max_health += 20  # Увеличиваем лимит здоровья
+            COUNT_OF_POINTS -= 1  # Уменьшаем количество очков
             showing_perks = False
-        if keys[pygame.K_4]:
+        if keys[pygame.K_4] and COUNT_OF_POINTS > 0:
             global show_health_bar
             show_health_bar = True  # Активируем отображение полоски здоровья
+            COUNT_OF_POINTS -= 1  # Уменьшаем количество очков
             showing_perks = False
 
         pygame.display.update()
@@ -472,11 +459,11 @@ def game_loop():
             spawn_enemy()
             last_spawn_time = current_time
 
-        # Обработка столкновений пуль игрока с врагами
         for enemy in enemies[:]:
             for bullet in player.bullets[:]:
                 if enemy.is_hit(bullet):
-                    if enemy.health - 1 == 0:
+                    enemy.take_damage(1)  # Используйте новый метод
+                    if enemy.health <= 0:
                         enemies.remove(enemy)
                         TOTAL_ENEMIES += 1
                         first_one = True
@@ -485,9 +472,8 @@ def game_loop():
                         points.append(Point(enemy.mass, enemy.x, enemy.y))
                         player.bullets.remove(bullet)
                         break
-                    else:
-                        enemy.health -= 1
-                        break
+                    player.bullets.remove(bullet)
+                    break
             enemy.draw(enemy)
 
             # Обновление и проверка столкновений врагов
@@ -507,14 +493,11 @@ def game_loop():
             bullet.draw()
 
         # обработка подбора поинта
-        for point in points[:]:
+        for point in points:
             if point.is_hit():
                 points.remove(point)
-                COUNT_OF_POINTS += 1
-                continue  # переходим к следующему поинту, чтобы не обновлять уже удалённый объект
-            point.update()
+                COUNT_OF_POINTS += 1  # Увеличиваем количество очков
             point.draw()
-
         counter_x = WINDOW_WIDTH - 100
         counter_y = 10
         player.draw(counter_text, counter_x, counter_y)
