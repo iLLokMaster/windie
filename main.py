@@ -28,6 +28,7 @@ show_health_bar = False
 COUNT_OF_POINTS = 0
 TOTAL_ENEMIES = 0
 
+
 # настройка pygame и окна
 os.environ['SDL_VIDEO_WINDOW_POS'] = "20, 50"
 pygame.mixer.pre_init()
@@ -176,7 +177,6 @@ class EnemyBullet(Bullet):
 class Enemy:
     """классический враг.
     просто двигается на игрока и наносит урон после сопрокосновения"""
-
     def __init__(self, x, y, health, type_en):
         self.x = x
         self.y = y
@@ -185,8 +185,6 @@ class Enemy:
         self.health = health
         self.mass = health
         self.speed = 2  # Скорость обычного врага
-        self.invulnerable_time = 0  # Время защиты
-        self.invulnerable_duration = 300  # 0.3 секунды защиты
 
     def draw(self, enemy):
         """отрисовка"""
@@ -217,19 +215,6 @@ class Enemy:
             self.x += dx * self.speed
             self.y += dy * self.speed
 
-        # Обновление времени защиты
-        if self.invulnerable_time > 0:
-            self.invulnerable_time -= clock.get_time()  # Уменьшение времени защиты
-
-    def take_damage(self, amount):
-        """Уменьшение здоровья врага при получении урона от пули."""
-        if self.invulnerable_time <= 0:  # Проверка на защиту
-            self.health -= amount
-            if self.health <= 0:
-                # Здесь можно добавить логику для уничтожения врага
-                pass
-            self.invulnerable_time = self.invulnerable_duration  # Установка времени защиты
-
     def is_hit(self, bullet):
         """Проверка, попал ли враг в пулю."""
         distance = math.sqrt((self.x - bullet.x) ** 2 + (self.y - bullet.y) ** 2)
@@ -245,22 +230,48 @@ class ShootingEnemy(Enemy):
     """одна из разновидностей врагов.
     умеет стрелять"""
     def __init__(self, x, y, health, type_en):
-        super().__init__(x, y, health, type)
+        super().__init__(x, y, health, type_en)
         self.shoot_cooldown = 1000  # Время между выстрелами
         self.type = type_en
         self.last_shot_time = pygame.time.get_ticks()
         self.speed = 1  # Уменьшенная скорость стреляющего врага
 
     def update(self):
-        """Движение врага к игроку."""
-        dx = player.x - self.x
-        dy = player.y - self.y
-        distance = math.sqrt(dx ** 2 + dy ** 2)
-        if distance > 0:
-            dx /= distance  # Нормализация вектора
-            dy /= distance
-            self.x += dx * self.speed
-            self.y += dy * self.speed
+        # Если атрибут направления ещё не задан, определяем его по положению врага.
+        if not hasattr(self, 'direction'):
+            if self.y <= 0:
+                self.direction = 'right'
+            elif self.x >= WINDOW_WIDTH:
+                self.direction = 'down'
+            elif self.y >= WINDOW_HEIGHT:
+                self.direction = 'left'
+            elif self.x <= 0:
+                self.direction = 'up'
+            else:
+                self.direction = 'right'
+
+        # Движение по периметру окна
+        if self.direction == 'right':
+            self.x += self.speed
+            if self.x >= WINDOW_WIDTH:
+                self.x = WINDOW_WIDTH
+                self.direction = 'down'
+        elif self.direction == 'down':
+            self.y += self.speed
+            if self.y >= WINDOW_HEIGHT:
+                self.y = WINDOW_HEIGHT
+                self.direction = 'left'
+        elif self.direction == 'left':
+            self.x -= self.speed
+            if self.x <= 0:
+                self.x = 0
+                self.direction = 'up'
+        elif self.direction == 'up':
+            self.y -= self.speed
+            if self.y <= 0:
+                self.y = 0
+                self.direction = 'right'
+
         self.shoot()
 
     def draw(self, enemy):
@@ -307,74 +318,118 @@ class Point:
         return distance < self.radius + player.radius
 
     def update(self):
-        """обновление движения поинтов. они немного двигаются к игроку"""
+        """Обновление движения поинтов.
+        Если расстояние до игрока меньше порога, скорость притяжения увеличивается."""
         dx = player.x - self.x
         dy = player.y - self.y
         distance = math.sqrt(dx ** 2 + dy ** 2)
         if distance > 0:
-            dx /= distance  # Нормализация вектора
-            dy /= distance
-            self.x += dx * self.speed
-            self.y += dy * self.speed
+            dx_norm = dx / distance
+            dy_norm = dy / distance
+            # Если поинт находится на небольшом расстоянии от игрока,
+            # увеличиваем скорость притяжения (коэффициент можно настроить, например, 3)
+            if distance < 100:
+                attraction_speed = self.speed * 3
+            else:
+                attraction_speed = self.speed
+            self.x += dx_norm * attraction_speed
+            self.y += dy_norm * attraction_speed
 
 
-def perks_menu():
-    """Меню перков которое открывается при нажатии пробела."""
-    global show_health_bar, COUNT_OF_POINTS
-    showing_perks = True
+def double_speed(player):
+    global BULLET_SPEED
+    BULLET_SPEED *= 2
 
-    while showing_perks:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-        screen.fill(BLACK)
+def health_plus(player):
+    player.health = min(player.health + 20, player.max_health)
 
-        # инициализация текста
-        perks_text = font.render("Perks Menu", True, WHITE)
-        double_speed_text = font.render("Нажмите 1: Двойная скорость (1 очко)", True, WHITE)
-        increase_health_text = font.render("Нажмите 2: Увеличить здоровье (1 очко)", True, WHITE)
-        increase_health_limit_text = font.render("Нажмите 3: Увеличить лимит здоровья (1 очко)", True, WHITE)
-        show_health_bar_text = font.render("Нажмите 4: Показать полоску здоровья (1 очко)", True, WHITE)
-        back_text = font.render("Нажмите B для возвращения", True, WHITE)
+def health_limit(player):
+    player.max_health += 20
 
-        # отображение на экране
-        screen.blit(perks_text, (WINDOW_WIDTH // 2 - perks_text.get_width() // 2, WINDOW_HEIGHT // 2 - 150))
-        screen.blit(double_speed_text,
-                    (WINDOW_WIDTH // 2 - double_speed_text.get_width() // 2, WINDOW_HEIGHT // 2 - 100))
-        screen.blit(increase_health_text,
-                    (WINDOW_WIDTH // 2 - increase_health_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
-        screen.blit(increase_health_limit_text,
-                    (WINDOW_WIDTH // 2 - increase_health_limit_text.get_width() // 2, WINDOW_HEIGHT // 2))
-        screen.blit(show_health_bar_text,
-                    (WINDOW_WIDTH // 2 - show_health_bar_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
-        screen.blit(back_text, (WINDOW_WIDTH // 2 - back_text.get_width() // 2, WINDOW_HEIGHT // 2 + 100))
+def health_bar(player):
+    global show_health_bar
+    show_health_bar = True
+    player.show_health_bar = True
 
-        # обработка ввода
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_b]:
-            showing_perks = False
-        if keys[pygame.K_1] and COUNT_OF_POINTS > 0:
-            global BULLET_SPEED
-            BULLET_SPEED *= 2
-            COUNT_OF_POINTS -= 1  # Уменьшаем количество очков
-            showing_perks = False
-        if keys[pygame.K_2] and COUNT_OF_POINTS > 0:
-            player.health = min(player.health + 20, player.max_health)  # Увеличиваем здоровье
-            COUNT_OF_POINTS -= 1  # Уменьшаем количество очков
-            showing_perks = False
-        if keys[pygame.K_3] and COUNT_OF_POINTS > 0:
-            player.max_health += 20  # Увеличиваем лимит здоровья
-            COUNT_OF_POINTS -= 1  # Уменьшаем количество очков
-            showing_perks = False
-        if keys[pygame.K_4] and COUNT_OF_POINTS > 0:
-            global show_health_bar
-            show_health_bar = True  # Активируем отображение полоски здоровья
-            COUNT_OF_POINTS -= 1  # Уменьшаем количество очков
-            showing_perks = False
+class Perk:
+    def __init__(self, name, base_cost, effect):
+        self.name = name
+        self.base_cost = base_cost  # стоимость перка
+        self.cost = base_cost       # текущая стоимость
+        self.effect = effect
+        self.purchased = 0
 
-        pygame.display.update()
-        clock.tick(15)
+    def purchase(self, player):
+        """Применяет эффект перка, увеличивает счётчик покупок и пересчитывает стоимость."""
+        self.effect(player)
+        self.purchased += 1
+        self.cost = int(self.base_cost * (1.5 ** self.purchased)) # цена увеличивается в 1,5 раза после покупки перка
+
+perks = [
+    Perk("Двойная скорость пули", 10, double_speed),
+    Perk("Увеличить здоровье", 15, health_plus),
+    Perk("Увеличить лимит здоровья", 20, health_limit),
+    Perk("Показать полоску здоровья", 5, health_bar)
+]
+class PerksMenu:
+    """Меню перков. При запуске случайным образом предлагается 3 перка.
+    Каждый перк имеет свою стоимость, и при повторной покупке его цена увеличивается."""
+    def __init__(self, player, screen, font):
+        self.player = player
+        self.screen = screen
+        self.font = font
+        # Случайным образом выбираем 3 различных перка из общего списка
+        self.options = random.sample(perks, 3)
+
+    def run(self):
+        global COUNT_OF_POINTS  # счёт поинтов игрока
+        menu_active = True
+        message = "" # на случай есои поинтов не хватит
+
+        while menu_active:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+
+            self.screen.fill(BLACK)
+
+            # Заголовок меню
+            title_text = self.font.render("Меню перков", True, WHITE)
+            self.screen.blit(title_text, (WINDOW_WIDTH // 2 - title_text.get_width() // 2, WINDOW_HEIGHT // 2 - 200))
+
+            # Отображаем варианты перков
+            for i, perk in enumerate(self.options):
+                option_text = self.font.render(f"{i+1}. {perk.name} - {perk.cost} поинтов", True, WHITE)
+                self.screen.blit(option_text, (WINDOW_WIDTH // 2 - option_text.get_width() // 2, WINDOW_HEIGHT // 2 - 150 + i*50))
+
+            back_text = self.font.render("Нажмите B для выхода", True, WHITE)
+            self.screen.blit(back_text, (WINDOW_WIDTH // 2 - back_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
+
+            # Вывод сообщения
+            if message:
+                msg_text = self.font.render(message, True, RED)
+                self.screen.blit(msg_text, (WINDOW_WIDTH // 2 - msg_text.get_width() // 2, WINDOW_HEIGHT // 2 + 100))
+
+            pygame.display.update()
+            clock.tick(15)
+
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_b]:
+                menu_active = False
+
+            # Обработка покупки перка
+            for key_val, index in zip([pygame.K_1, pygame.K_2, pygame.K_3], range(3)):
+                if keys[key_val]:
+                    selected_perk = self.options[index]
+                    if COUNT_OF_POINTS >= selected_perk.cost:
+                        COUNT_OF_POINTS -= selected_perk.cost
+                        selected_perk.purchase(self.player)
+                        menu_active = False
+                    else:
+                        message = "Недостаточно поинтов для покупки!"
+
+                    pygame.time.delay(300)
 
 
 def game_loop():
@@ -422,7 +477,8 @@ def game_loop():
         if keys[pygame.K_d]:
             player.move(5, 0)
         if keys[pygame.K_SPACE]:
-            perks_menu()
+            perks = PerksMenu(player, screen, font)
+            perks.run()
         # постепенное усложнение игры
         if TOTAL_ENEMIES % 10 == 0:
             if TOTAL_ENEMIES != 0:
@@ -459,11 +515,11 @@ def game_loop():
             spawn_enemy()
             last_spawn_time = current_time
 
+        # Обработка столкновений пуль игрока с врагами
         for enemy in enemies[:]:
             for bullet in player.bullets[:]:
                 if enemy.is_hit(bullet):
-                    enemy.take_damage(1)  # Используйте новый метод
-                    if enemy.health <= 0:
+                    if enemy.health - 1 == 0:
                         enemies.remove(enemy)
                         TOTAL_ENEMIES += 1
                         first_one = True
@@ -472,8 +528,9 @@ def game_loop():
                         points.append(Point(enemy.mass, enemy.x, enemy.y))
                         player.bullets.remove(bullet)
                         break
-                    player.bullets.remove(bullet)
-                    break
+                    else:
+                        enemy.health -= 1
+                        break
             enemy.draw(enemy)
 
             # Обновление и проверка столкновений врагов
@@ -493,11 +550,14 @@ def game_loop():
             bullet.draw()
 
         # обработка подбора поинта
-        for point in points:
+        for point in points[:]:
             if point.is_hit():
                 points.remove(point)
-                COUNT_OF_POINTS += 1  # Увеличиваем количество очков
+                COUNT_OF_POINTS += 1
+                continue  # переходим к следующему поинту, чтобы не обновлять уже удалённый объект
+            point.update()
             point.draw()
+
         counter_x = WINDOW_WIDTH - 100
         counter_y = 10
         player.draw(counter_text, counter_x, counter_y)
