@@ -229,22 +229,48 @@ class ShootingEnemy(Enemy):
     """одна из разновидностей врагов.
     умеет стрелять"""
     def __init__(self, x, y, health, type_en):
-        super().__init__(x, y, health, type)
+        super().__init__(x, y, health, type_en)
         self.shoot_cooldown = 1000  # Время между выстрелами
         self.type = type_en
         self.last_shot_time = pygame.time.get_ticks()
         self.speed = 1  # Уменьшенная скорость стреляющего врага
 
     def update(self):
-        """Движение врага к игроку."""
-        dx = player.x - self.x
-        dy = player.y - self.y
-        distance = math.sqrt(dx ** 2 + dy ** 2)
-        if distance > 0:
-            dx /= distance  # Нормализация вектора
-            dy /= distance
-            self.x += dx * self.speed
-            self.y += dy * self.speed
+        # Если атрибут направления ещё не задан, определяем его по положению врага.
+        if not hasattr(self, 'direction'):
+            if self.y <= 0:
+                self.direction = 'right'
+            elif self.x >= WINDOW_WIDTH:
+                self.direction = 'down'
+            elif self.y >= WINDOW_HEIGHT:
+                self.direction = 'left'
+            elif self.x <= 0:
+                self.direction = 'up'
+            else:
+                self.direction = 'right'
+
+        # Движение по периметру окна
+        if self.direction == 'right':
+            self.x += self.speed
+            if self.x >= WINDOW_WIDTH:
+                self.x = WINDOW_WIDTH
+                self.direction = 'down'
+        elif self.direction == 'down':
+            self.y += self.speed
+            if self.y >= WINDOW_HEIGHT:
+                self.y = WINDOW_HEIGHT
+                self.direction = 'left'
+        elif self.direction == 'left':
+            self.x -= self.speed
+            if self.x <= 0:
+                self.x = 0
+                self.direction = 'up'
+        elif self.direction == 'up':
+            self.y -= self.speed
+            if self.y <= 0:
+                self.y = 0
+                self.direction = 'right'
+
         self.shoot()
 
     def draw(self, enemy):
