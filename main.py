@@ -587,30 +587,6 @@ def game_loop():
                         break
             enemy.draw(enemy)
 
-            # Обработка столкновений пуль игрока с врагами
-            # for enemy in enemies[:]:
-            #     for bullet in player.bullets[:]:
-            #         if enemy.is_hit(bullet):
-            #             # Удаляем пулю сразу после столкновения
-            #             player.bullets.remove(bullet)
-            #             # Наносим урон врагу
-            #             enemy.health -= 1
-            #             if enemy.health <= 0:
-            #                 enemies.remove(enemy)
-            #                 TOTAL_ENEMIES += 1
-            #                 # Добавляем поинт при уничтожении врага
-            #                 points.append(Point(enemy.mass, enemy.x, enemy.y))
-            #             # После того, как пуля попала в врага, прекращаем проверку для данной пули
-            #             break
-            #
-            #     # Отрисовка и обновление врага
-            #     enemy.draw(enemy)
-            #     enemy.update()
-            #
-            #     # Если враг столкнулся с игроком, наносим урон игроку
-            #     if enemy.is_colliding_with_player():
-            #         player.take_damage(10)
-            # Обновление и проверка столкновений врагов
             enemy.update()  # Обновляем врагов, чтобы они двигались к игроку
             if enemy.is_colliding_with_player():
                 player.take_damage(10)
