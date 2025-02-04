@@ -27,6 +27,7 @@ show_health_bar = False
 COUNT_OF_POINTS = 0
 TOTAL_ENEMIES = 0
 Chance_to_spawn_a_shooting_enemy = 0.25
+Chance_to_break_through = 0
 
 # настройка pygame и окна
 os.environ['SDL_VIDEO_WINDOW_POS'] = "20, 50"
@@ -407,6 +408,11 @@ def bust_shoot_cooldown():
         player.shoot_cooldown -= 20
 
 
+def chance_to_break_through():
+    global Chance_to_break_through
+    Chance_to_break_through += 0.1
+
+
 perks = [
     Perk("Увеличить скорость пули", 10, bust_speed),
     Perk("Увеличить здоровье", 15, health_plus),
@@ -418,7 +424,7 @@ perks = [
     Perk("одномоментное увеличение размера окна", 50, reset_win_scale),
     Perk("увеличение урона", 15, bust_damage),
     Perk("увеличение частоты выстрелов", 15, bust_shoot_cooldown),
-    # Perk("шанс пробить врага насквозь", 20, ),
+    Perk("шанс пробить врага насквозь", 20, chance_to_break_through),
     Perk("убить всех врагов", 50, kill_all_enemies),
 
 ]
@@ -438,13 +444,14 @@ class PerksMenu:
         global COUNT_OF_POINTS  # счёт поинтов игрока
         menu_active = True
         message = ""  # на случай если поинтов не хватит
+        first_press_time = pygame.time.get_ticks()
 
         while menu_active:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     quit()
-
+            screen = pygame.display.set_mode((800, 800), pygame.RESIZABLE)
             self.screen.fill(BLACK)
 
             # Заголовок меню
@@ -457,7 +464,7 @@ class PerksMenu:
                 self.screen.blit(option_text,
                                  (WINDOW_WIDTH // 2 - option_text.get_width() // 2, WINDOW_HEIGHT // 2 - 150 + i * 50))
 
-            back_text = self.font.render("Нажмите B для выхода", True, WHITE)
+            back_text = self.font.render("Нажмите [пробел] для выхода", True, WHITE)
             self.screen.blit(back_text, (WINDOW_WIDTH // 2 - back_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
 
             # Вывод сообщения
@@ -469,8 +476,10 @@ class PerksMenu:
             clock.tick(15)
 
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_b]:
-                menu_active = False
+            if keys[pygame.K_SPACE]:
+                last_press_time = pygame.time.get_ticks()
+                if last_press_time - first_press_time > 400:
+                    menu_active = False
 
             # Обработка покупки перка
             for key_val, index in zip([pygame.K_1, pygame.K_2, pygame.K_3], range(3)):
@@ -573,7 +582,8 @@ def game_loop():
         for enemy in enemies[:]:
             for bullet in player.bullets[:]:
                 if enemy.is_hit(bullet):
-                    player.bullets.remove(bullet)
+                    if random.random() > Chance_to_break_through:
+                        player.bullets.remove(bullet)
                     if enemy.health - player.damage == 0:
                         enemies.remove(enemy)
                         TOTAL_ENEMIES += 1
