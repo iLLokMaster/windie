@@ -14,7 +14,6 @@ PLAYER_RADIUS = 25
 BULLET_RADIUS = 5
 BULLET_SPEED = 10
 BULLET_COLOR = (255, 255, 255)
-SHRINK_AMOUNT = 30
 SHRINK_INTERVAL = 75
 ENEMY_RADIUS = 20
 ENEMY_COLOR = (0, 255, 0)
@@ -56,6 +55,8 @@ class Player:
         self.invulnerable_time = 0  # Время бессмертия
         self.invulnerable_duration = 1000  # 1 секунда бессмертия
         self.show_health_bar = False  # По умолчанию полоска здоровья скрыта
+        self.damage = 1
+        self.SHRINK_AMOUNT = 30
 
     def draw_health_bar(self):
         """Отрисовка полоски здоровья игрока."""
@@ -110,12 +111,12 @@ class Player:
 
                 # Расширение окна вправо
                 if bullet.x >= WINDOW_WIDTH:
-                    WINDOW_WIDTH += SHRINK_AMOUNT
+                    WINDOW_WIDTH += self.SHRINK_AMOUNT
                     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
                 # Расширение окна вниз
                 elif bullet.y >= WINDOW_HEIGHT:
-                    WINDOW_HEIGHT += SHRINK_AMOUNT
+                    WINDOW_HEIGHT += self.SHRINK_AMOUNT
                     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
     def take_damage(self, amount):
@@ -198,14 +199,15 @@ class Enemy:
 
     def draw_health_bar(self):
         """Отображение полоски здоровья врага."""
-        bar_width = 40
-        bar_height = 5
-        health_ratio = self.health / self.mass
-        current_width = int(bar_width * health_ratio)
-        bar_x = self.x - bar_width // 2
-        bar_y = self.y - self.radius - 10
-        pygame.draw.rect(screen, RED, (bar_x, bar_y, current_width, bar_height))
-        pygame.draw.rect(screen, WHITE, (bar_x, bar_y, bar_width, bar_height), 1)
+        if show_health_bar:
+            bar_width = 40
+            bar_height = 5
+            health_ratio = self.health / self.mass
+            current_width = int(bar_width * health_ratio)
+            bar_x = self.x - bar_width // 2
+            bar_y = self.y - self.radius - 10
+            pygame.draw.rect(screen, RED, (bar_x, bar_y, current_width, bar_height))
+            pygame.draw.rect(screen, WHITE, (bar_x, bar_y, bar_width, bar_height), 1)
 
     def update(self):
         """Движение врага к игроку."""
@@ -341,9 +343,20 @@ class Point:
             self.y += dy_norm * attraction_speed
 
 
-def double_speed():
-    global BULLET_SPEED
-    BULLET_SPEED += 2
+class Perk:
+    def __init__(self, name, base_cost, effect):
+        self.name = name
+        self.base_cost = base_cost  # стоимость перка
+        self.cost = base_cost  # текущая стоимость
+        self.effect = effect
+        self.purchased = 0
+        self.player = Player
+
+    def purchase(self):
+        """Применяет эффект перка, увеличивает счётчик покупок и пересчитывает стоимость."""
+        self.effect()
+        self.purchased += 1
+        self.cost = int(self.base_cost * (1.5 ** self.purchased))  # цена увеличивается в 1,5 раза после покупки перка
 
 
 def health_plus():
@@ -362,30 +375,53 @@ def health_bar():
 
 def chance_to_spawn_a_shooting_enemy():
     global Chance_to_spawn_a_shooting_enemy
-    Chance_to_spawn_a_shooting_enemy -= 0.02
+    if Chance_to_spawn_a_shooting_enemy > 0.02:
+        Chance_to_spawn_a_shooting_enemy -= 0.02
 
 
-class Perk:
-    def __init__(self, name, base_cost, effect):
-        self.name = name
-        self.base_cost = base_cost  # стоимость перка
-        self.cost = base_cost  # текущая стоимость
-        self.effect = effect
-        self.purchased = 0
+def reset_win_scale():
+    global WINDOW_WIDTH, WINDOW_HEIGHT
+    WINDOW_WIDTH += 500
+    WINDOW_HEIGHT += 500
 
-    def purchase(self):
-        """Применяет эффект перка, увеличивает счётчик покупок и пересчитывает стоимость."""
-        self.effect()
-        self.purchased += 1
-        self.cost = int(self.base_cost * (1.5 ** self.purchased))  # цена увеличивается в 1,5 раза после покупки перка
+
+def kill_all_enemies():
+    enemies.clear()
+
+
+def bust_speed():
+    global BULLET_SPEED
+    BULLET_SPEED += 2
+
+
+def bust_shrink_amount():
+    if player.SHRINK_AMOUNT < 200:
+        player.SHRINK_AMOUNT += 5
+
+
+def bust_damage():
+    player.damage += 1
+
+
+def bust_shoot_cooldown():
+    if player.shoot_cooldown > 100:
+        player.shoot_cooldown -= 20
 
 
 perks = [
-    Perk("Увеличить скорость пули", 10, double_speed),
+    Perk("Увеличить скорость пули", 10, bust_speed),
     Perk("Увеличить здоровье", 15, health_plus),
     Perk("Увеличить лимит здоровья", 20, health_limit),
-    Perk("Показать полоску здоровья", 5, health_bar),
+    Perk("Показать полоску здоровья", 50, health_bar),
     Perk("Уменьшить шанс спавна стреляющего врага", 10, chance_to_spawn_a_shooting_enemy),
+    # Perk("увеличение скорости движения", 15, ),
+    Perk("Сдвиг окна при попадании пули увеличивается", 20, bust_shrink_amount),
+    Perk("одномоментное увеличение размера окна", 50, reset_win_scale),
+    Perk("увеличение урона", 15, bust_damage),
+    Perk("увеличение частоты выстрелов", 15, bust_shoot_cooldown),
+    # Perk("шанс пробить врага насквозь", 20, ),
+    Perk("убить всех врагов", 50, kill_all_enemies),
+
 ]
 
 
@@ -539,7 +575,7 @@ def game_loop():
             for bullet in player.bullets[:]:
                 if enemy.is_hit(bullet):
                     player.bullets.remove(bullet)
-                    if enemy.health - 1 == 0:
+                    if enemy.health - player.damage == 0:
                         enemies.remove(enemy)
                         TOTAL_ENEMIES += 1
                         first_one = True
