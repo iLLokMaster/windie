@@ -574,6 +574,7 @@ def game_loop():
         for enemy in enemies[:]:
             for bullet in player.bullets[:]:
                 if enemy.is_hit(bullet):
+                    player.bullets.remove(bullet)
                     if enemy.health - player.damage == 0:
                         enemies.remove(enemy)
                         TOTAL_ENEMIES += 1
@@ -581,13 +582,35 @@ def game_loop():
                         if TOTAL_ENEMIES == 1:
                             SPAWN_INTERVAL = 2000
                         points.append(Point(enemy.mass, enemy.x, enemy.y))
-                        player.bullets.remove(bullet)
                         break
                     else:
                         enemy.health -= 1
                         break
             enemy.draw(enemy)
 
+            # Обработка столкновений пуль игрока с врагами
+            # for enemy in enemies[:]:
+            #     for bullet in player.bullets[:]:
+            #         if enemy.is_hit(bullet):
+            #             # Удаляем пулю сразу после столкновения
+            #             player.bullets.remove(bullet)
+            #             # Наносим урон врагу
+            #             enemy.health -= 1
+            #             if enemy.health <= 0:
+            #                 enemies.remove(enemy)
+            #                 TOTAL_ENEMIES += 1
+            #                 # Добавляем поинт при уничтожении врага
+            #                 points.append(Point(enemy.mass, enemy.x, enemy.y))
+            #             # После того, как пуля попала в врага, прекращаем проверку для данной пули
+            #             break
+            #
+            #     # Отрисовка и обновление врага
+            #     enemy.draw(enemy)
+            #     enemy.update()
+            #
+            #     # Если враг столкнулся с игроком, наносим урон игроку
+            #     if enemy.is_colliding_with_player():
+            #         player.take_damage(10)
             # Обновление и проверка столкновений врагов
             enemy.update()  # Обновляем врагов, чтобы они двигались к игроку
             if enemy.is_colliding_with_player():
