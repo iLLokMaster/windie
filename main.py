@@ -27,7 +27,7 @@ HEALTH_BAR_COLOR = (0, 128, 0)
 show_health_bar = False
 COUNT_OF_POINTS = 0
 TOTAL_ENEMIES = 0
-
+Chance_to_spawn_a_shooting_enemy = 0.25
 
 # настройка pygame и окна
 os.environ['SDL_VIDEO_WINDOW_POS'] = "20, 50"
@@ -43,6 +43,7 @@ pygame.event.set_grab(True)
 
 class Player:
     """сам персонаж и прикладные к нему ментоды"""
+
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -133,6 +134,7 @@ class Player:
 
 class Bullet:
     """пуля игрока"""
+
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -164,6 +166,7 @@ class Bullet:
 
 class EnemyBullet(Bullet):
     """специальная пуля для врага."""
+
     def __init__(self, x, y):
         super().__init__(x, y)
 
@@ -177,10 +180,10 @@ class EnemyBullet(Bullet):
 class Enemy:
     """классический враг.
     просто двигается на игрока и наносит урон после сопрокосновения"""
-    def __init__(self, x, y, health, type_en):
+
+    def __init__(self, x, y, health):
         self.x = x
         self.y = y
-        self.type = type_en
         self.radius = ENEMY_RADIUS
         self.health = health
         self.mass = health
@@ -229,10 +232,11 @@ class Enemy:
 class ShootingEnemy(Enemy):
     """одна из разновидностей врагов.
     умеет стрелять"""
-    def __init__(self, x, y, health, type_en):
-        super().__init__(x, y, health, type_en)
+
+    def __init__(self, x, y, health):
+        super().__init__(x, y, health)
+        self.direction = None
         self.shoot_cooldown = 1000  # Время между выстрелами
-        self.type = type_en
         self.last_shot_time = pygame.time.get_ticks()
         self.speed = 1  # Уменьшенная скорость стреляющего врага
 
@@ -294,6 +298,7 @@ class ShootingEnemy(Enemy):
 class Point:
     """объект, выпадающий после нейтрализации врага.
     при соприконовении с игроком пропадает и зачисляется на счёт"""
+
     def __init__(self, mass, x, y):
         """Создание нового поинта. вычисление его размера по количеству добавляемых очков"""
         self.speed = 1.1
@@ -336,46 +341,59 @@ class Point:
             self.y += dy_norm * attraction_speed
 
 
-def double_speed(player):
+def double_speed():
     global BULLET_SPEED
-    BULLET_SPEED *= 2
+    BULLET_SPEED += 2
 
-def health_plus(player):
+
+def health_plus():
     player.health = min(player.health + 20, player.max_health)
 
-def health_limit(player):
+
+def health_limit():
     player.max_health += 20
 
-def health_bar(player):
+
+def health_bar():
     global show_health_bar
     show_health_bar = True
     player.show_health_bar = True
+
+
+def chance_to_spawn_a_shooting_enemy():
+    global Chance_to_spawn_a_shooting_enemy
+    Chance_to_spawn_a_shooting_enemy -= 0.02
+
 
 class Perk:
     def __init__(self, name, base_cost, effect):
         self.name = name
         self.base_cost = base_cost  # стоимость перка
-        self.cost = base_cost       # текущая стоимость
+        self.cost = base_cost  # текущая стоимость
         self.effect = effect
         self.purchased = 0
 
-    def purchase(self, player):
+    def purchase(self):
         """Применяет эффект перка, увеличивает счётчик покупок и пересчитывает стоимость."""
-        self.effect(player)
+        self.effect()
         self.purchased += 1
-        self.cost = int(self.base_cost * (1.5 ** self.purchased)) # цена увеличивается в 1,5 раза после покупки перка
+        self.cost = int(self.base_cost * (1.5 ** self.purchased))  # цена увеличивается в 1,5 раза после покупки перка
+
 
 perks = [
-    Perk("Двойная скорость пули", 10, double_speed),
+    Perk("Увеличить скорость пули", 10, double_speed),
     Perk("Увеличить здоровье", 15, health_plus),
     Perk("Увеличить лимит здоровья", 20, health_limit),
-    Perk("Показать полоску здоровья", 5, health_bar)
+    Perk("Показать полоску здоровья", 5, health_bar),
+    Perk("Уменьшить шанс спавна стреляющего врага", 10, chance_to_spawn_a_shooting_enemy),
 ]
+
+
 class PerksMenu:
     """Меню перков. При запуске случайным образом предлагается 3 перка.
     Каждый перк имеет свою стоимость, и при повторной покупке его цена увеличивается."""
-    def __init__(self, player, screen, font):
-        self.player = player
+
+    def __init__(self):
         self.screen = screen
         self.font = font
         # Случайным образом выбираем 3 различных перка из общего списка
@@ -384,7 +402,7 @@ class PerksMenu:
     def run(self):
         global COUNT_OF_POINTS  # счёт поинтов игрока
         menu_active = True
-        message = "" # на случай есои поинтов не хватит
+        message = ""  # на случай если поинтов не хватит
 
         while menu_active:
             for event in pygame.event.get():
@@ -400,8 +418,9 @@ class PerksMenu:
 
             # Отображаем варианты перков
             for i, perk in enumerate(self.options):
-                option_text = self.font.render(f"{i+1}. {perk.name} - {perk.cost} поинтов", True, WHITE)
-                self.screen.blit(option_text, (WINDOW_WIDTH // 2 - option_text.get_width() // 2, WINDOW_HEIGHT // 2 - 150 + i*50))
+                option_text = self.font.render(f"{i + 1}. {perk.name} - {perk.cost} поинтов", True, WHITE)
+                self.screen.blit(option_text,
+                                 (WINDOW_WIDTH // 2 - option_text.get_width() // 2, WINDOW_HEIGHT // 2 - 150 + i * 50))
 
             back_text = self.font.render("Нажмите B для выхода", True, WHITE)
             self.screen.blit(back_text, (WINDOW_WIDTH // 2 - back_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
@@ -424,7 +443,7 @@ class PerksMenu:
                     selected_perk = self.options[index]
                     if COUNT_OF_POINTS >= selected_perk.cost:
                         COUNT_OF_POINTS -= selected_perk.cost
-                        selected_perk.purchase(self.player)
+                        selected_perk.purchase()
                         menu_active = False
                     else:
                         message = "Недостаточно поинтов для покупки!"
@@ -477,8 +496,8 @@ def game_loop():
         if keys[pygame.K_d]:
             player.move(5, 0)
         if keys[pygame.K_SPACE]:
-            perks = PerksMenu(player, screen, font)
-            perks.run()
+            perks_menu = PerksMenu()
+            perks_menu.run()
         # постепенное усложнение игры
         if TOTAL_ENEMIES % 10 == 0:
             if TOTAL_ENEMIES != 0:
@@ -562,7 +581,8 @@ def game_loop():
         counter_y = 10
         player.draw(counter_text, counter_x, counter_y)
         cursor_x, cursor_y = pygame.mouse.get_pos()  # Получаем позицию курсора мыши
-        screen.blit(crosshair_image, (cursor_x - 10, cursor_y - 10))  # Отрисовываем перекрестие прицела и Центрируем перекрестие
+        screen.blit(crosshair_image,
+                    (cursor_x - 10, cursor_y - 10))  # Отрисовываем перекрестие прицела и Центрируем перекрестие
 
         if show_health_bar:
             player.draw_health_bar()
@@ -589,12 +609,12 @@ def spawn_enemy():
 
     # Случайный выбор типа врага (обычный или стреляющий)
     if TOTAL_ENEMIES >= 25 + random.randint(0, 5):
-        if random.random() < 0.5:  # 50% шанс на создание стреляющего врага
-            enemies.append(ShootingEnemy(x, y, 2, 3))
+        if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
+            enemies.append(ShootingEnemy(x, y, 10))
         else:
-            enemies.append(Enemy(x, y, 2, 1))
+            enemies.append(Enemy(x, y, 2))
     else:
-        enemies.append(Enemy(x, y, 2, 1))
+        enemies.append(Enemy(x, y, 2))
 
 
 def game_over():
