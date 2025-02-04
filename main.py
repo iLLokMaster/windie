@@ -38,6 +38,14 @@ screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), )
 pygame.display.set_caption("Shooting Game")
 clock = pygame.time.Clock()
 pygame.event.set_grab(True)
+sprite_image_main = pygame.image.load('data/pic/1_rang_enemy.png')
+sprite_image_main = pygame.transform.scale(sprite_image_main, (50, 50))
+sprite_image_shoot = pygame.image.load('data/pic/3_rang_enemy.png')
+sprite_image_shoot = pygame.transform.scale(sprite_image_shoot, (50, 50))
+sprite_image_player = pygame.image.load('data/pic/player1.png')
+sprite_image_player = pygame.transform.scale(sprite_image_player, (PLAYER_SCALE, PLAYER_SCALE))
+sprite_image_enemy_bullet = pygame.image.load('data/pic/bullet_for_enemy.png')
+sprite_image_enemy_bullet = pygame.transform.scale(sprite_image_enemy_bullet, (100, 100))
 
 
 class Player:
@@ -75,9 +83,7 @@ class Player:
             # Мигаем игрока, когда он бессмертен
             if (pygame.time.get_ticks() // 100) % 2 == 0:
                 return  # Не отрисовываем игрока
-        sprite_image = pygame.image.load('data/pic/player1.png')
-        sprite_image = pygame.transform.scale(sprite_image, (PLAYER_SCALE, PLAYER_SCALE))
-        screen.blit(sprite_image, (self.x - PLAYER_SCALE // 2, self.y - PLAYER_SCALE // 2))
+        screen.blit(sprite_image_player, (self.x - PLAYER_SCALE // 2, self.y - PLAYER_SCALE // 2))
         screen.blit(counter_text, (counter_x, counter_y))
         for bullet in self.bullets:
             bullet.draw()
@@ -173,9 +179,7 @@ class EnemyBullet(Bullet):
 
     def draw(self):
         """Отрисовка пули на холсте."""
-        sprite_image = pygame.image.load('data/pic/bullet_for_enemy.png')
-        sprite_image = pygame.transform.scale(sprite_image, (100, 100))
-        screen.blit(sprite_image, (self.x - 50, self.y - 50))
+        screen.blit(sprite_image_enemy_bullet, (self.x - 50, self.y - 50))
 
 
 class Enemy:
@@ -192,9 +196,7 @@ class Enemy:
 
     def draw(self, enemy):
         """отрисовка"""
-        sprite_image = pygame.image.load('data/pic/1_rang_enemy.png')
-        sprite_image = pygame.transform.scale(sprite_image, (50, 50))
-        screen.blit(sprite_image, (self.x - 25, self.y - 25))
+        screen.blit(sprite_image_main, (self.x - 25, self.y - 25))
         self.draw_health_bar()
 
     def draw_health_bar(self):
@@ -281,9 +283,7 @@ class ShootingEnemy(Enemy):
 
     def draw(self, enemy):
         """отрисовка"""
-        sprite_image = pygame.image.load('data/pic/3_rang_enemy.png')
-        sprite_image = pygame.transform.scale(sprite_image, (50, 50))
-        screen.blit(sprite_image, (self.x - 25, self.y - 25))
+        screen.blit(sprite_image_shoot, (self.x - 25, self.y - 25))
         self.draw_health_bar()
 
     def shoot(self):
