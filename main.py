@@ -237,7 +237,6 @@ class ShootingEnemy(Enemy):
 
     def __init__(self, x, y, health):
         super().__init__(x, y, health)
-        self.direction = None
         self.shoot_cooldown = 1000  # Время между выстрелами
         self.last_shot_time = pygame.time.get_ticks()
         self.speed = 1  # Уменьшенная скорость стреляющего врага
