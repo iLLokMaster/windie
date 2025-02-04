@@ -419,14 +419,12 @@ perks = [
     Perk("Увеличить лимит здоровья", 20, health_limit),
     Perk("Показать полоску здоровья", 50, health_bar),
     Perk("Уменьшить шанс спавна стреляющего врага", 10, chance_to_spawn_a_shooting_enemy),
-    # Perk("увеличение скорости движения", 15, ),
     Perk("Сдвиг окна при попадании пули увеличивается", 20, bust_shrink_amount),
     Perk("одномоментное увеличение размера окна", 50, reset_win_scale),
     Perk("увеличение урона", 15, bust_damage),
     Perk("увеличение частоты выстрелов", 15, bust_shoot_cooldown),
     Perk("шанс пробить врага насквозь", 20, chance_to_break_through),
     Perk("убить всех врагов", 50, kill_all_enemies),
-
 ]
 
 
@@ -451,26 +449,26 @@ class PerksMenu:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     quit()
-            screen = pygame.display.set_mode((800, 800), pygame.RESIZABLE)
-            self.screen.fill(BLACK)
 
+            self.screen.fill(BLACK)
+            screen = pygame.display.set_mode((800, 800), pygame.RESIZABLE)
             # Заголовок меню
             title_text = self.font.render("Меню перков", True, WHITE)
-            self.screen.blit(title_text, (WINDOW_WIDTH // 2 - title_text.get_width() // 2, WINDOW_HEIGHT // 2 - 200))
+            self.screen.blit(title_text, (800 // 2 - title_text.get_width() // 2, 800 // 2 - 200))
 
             # Отображаем варианты перков
             for i, perk in enumerate(self.options):
                 option_text = self.font.render(f"{i + 1}. {perk.name} - {perk.cost} поинтов", True, WHITE)
                 self.screen.blit(option_text,
-                                 (WINDOW_WIDTH // 2 - option_text.get_width() // 2, WINDOW_HEIGHT // 2 - 150 + i * 50))
+                                 (800 // 2 - option_text.get_width() // 2, 800 // 2 - 150 + i * 50))
 
             back_text = self.font.render("Нажмите [пробел] для выхода", True, WHITE)
-            self.screen.blit(back_text, (WINDOW_WIDTH // 2 - back_text.get_width() // 2, WINDOW_HEIGHT // 2 + 50))
+            self.screen.blit(back_text, (800 // 2 - back_text.get_width() // 2, 800 // 2 + 50))
 
             # Вывод сообщения
             if message:
                 msg_text = self.font.render(message, True, RED)
-                self.screen.blit(msg_text, (WINDOW_WIDTH // 2 - msg_text.get_width() // 2, WINDOW_HEIGHT // 2 + 100))
+                self.screen.blit(msg_text, (800 // 2 - msg_text.get_width() // 2, 800 // 2 + 100))
 
             pygame.display.update()
             clock.tick(15)
@@ -521,6 +519,7 @@ def game_loop():
     else:
         pygame.mixer.music.load('data/music/03. Windowchill.mp3')
     pygame.mixer.music.play(loops = -1)
+    first_press_time = pygame.time.get_ticks()
 
     while True:
         for event in pygame.event.get():
@@ -540,8 +539,12 @@ def game_loop():
         if keys[pygame.K_d]:
             player.move(5, 0)
         if keys[pygame.K_SPACE]:
-            perks_menu = PerksMenu()
-            perks_menu.run()
+            last_press_time = pygame.time.get_ticks()
+            if last_press_time - first_press_time > 400:
+                perks_menu = PerksMenu()
+                perks_menu.run()
+                first_press_time = pygame.time.get_ticks()
+
         # постепенное усложнение игры
         if TOTAL_ENEMIES % 10 == 0:
             if TOTAL_ENEMIES != 0:
@@ -670,6 +673,7 @@ def game_over():
     pygame.mixer_music.stop()
     pygame.mixer.music.load('data/music/mixkit-game-level-music-689.wav')
     pygame.mixer.music.play(loops = -1)
+    screen = pygame.display.set_mode((800, 800), pygame.RESIZABLE)
 
     while showing_window:
         for event in pygame.event.get():
@@ -679,10 +683,10 @@ def game_over():
 
         # отображение
         screen.fill(BLACK)
-        screen.blit(game_over_text, (WINDOW_WIDTH // 2 - game_over_text.get_width() // 2, WINDOW_HEIGHT // 2 - 50))
-        screen.blit(press_f_to_respect, (WINDOW_WIDTH // 2 - press_f_to_respect.get_width()
-                                         // 2, WINDOW_HEIGHT // 2 + 50))
-        screen.blit(score, (WINDOW_WIDTH // 2 - score.get_width() // 2, WINDOW_HEIGHT // 2 + 100))
+        screen.blit(game_over_text, (800 // 2 - game_over_text.get_width() // 2, 800 // 2 - 50))
+        screen.blit(press_f_to_respect, (800 // 2 - press_f_to_respect.get_width()
+                                         // 2, 800 // 2 + 50))
+        screen.blit(score, (800 // 2 - score.get_width() // 2, 800 // 2 + 100))
 
         # обработка ввода
         keys = pygame.key.get_pressed()
