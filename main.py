@@ -344,13 +344,14 @@ class Point:
 
 
 class Perk:
-    def __init__(self, name, base_cost, effect):
+    def __init__(self, name, base_cost, effect, pic):
         self.name = name
         self.base_cost = base_cost  # стоимость перка
         self.cost = base_cost  # текущая стоимость
         self.effect = effect
         self.purchased = 0
         self.player = Player
+        self.picture = pic
 
     def purchase(self):
         """Применяет эффект перка, увеличивает счётчик покупок и пересчитывает стоимость."""
@@ -413,19 +414,40 @@ def chance_to_break_through():
     Chance_to_break_through += 0.1
 
 
+speed_up_pic = pygame.image.load('data/pic/bust speed.png')
+speed_up_pic = pygame.transform.scale(speed_up_pic, (200, 300))
+health_up_pic = pygame.image.load('data/pic/add health.png')
+health_up_pic = pygame.transform.scale(health_up_pic, (200, 300))
+max_health_pic = pygame.image.load('data/pic/max health.png')
+max_health_pic = pygame.transform.scale(max_health_pic, (200, 300))
+show_health_bar_pic = pygame.image.load('data/pic/show heath bar.png')
+show_health_bar_pic = pygame.transform.scale(show_health_bar_pic, (200, 300))
+chance_to_spawn_a_shooting_enemy_pic = pygame.image.load('data/pic/chance shoot.png')
+chance_to_spawn_a_shooting_enemy_pic = pygame.transform.scale(chance_to_spawn_a_shooting_enemy_pic, (200, 300))
+shrink_up_pic = pygame.image.load('data/pic/wall push.png')
+shrink_up_pic = pygame.transform.scale(shrink_up_pic, (200, 300))
+moment_push_pic = pygame.image.load('data/pic/moment push.png')
+moment_push_pic = pygame.transform.scale(moment_push_pic, (200, 300))
+damaged_up_pic = pygame.image.load('data/pic/damage.png')
+damaged_up_pic = pygame.transform.scale(damaged_up_pic, (200, 300))
+fire_rate_up_pic = pygame.image.load('data/pic/fire rate.png')
+fire_rate_up_pic = pygame.transform.scale(fire_rate_up_pic, (200, 300))
+shoot_through_pic = pygame.image.load('data/pic/shot throught.png')
+shoot_through_pic = pygame.transform.scale(shoot_through_pic, (200, 300))
+kill_all_enemies_pick = pygame.image.load('data/pic/kill all.png')
+kill_all_enemies_pick = pygame.transform.scale(kill_all_enemies_pick, (200, 300))
 perks = [
-    Perk("Увеличить скорость пули", 10, bust_speed),
-    Perk("Увеличить здоровье", 15, health_plus),
-    Perk("Увеличить лимит здоровья", 20, health_limit),
-    Perk("Показать полоску здоровья", 50, health_bar),
-    Perk("Уменьшить шанс спавна стреляющего врага", 10, chance_to_spawn_a_shooting_enemy),
-    Perk("Сдвиг окна при попадании пули увеличивается", 20, bust_shrink_amount),
-    Perk("одномоментное увеличение размера окна", 50, reset_win_scale),
-    Perk("увеличение урона", 15, bust_damage),
-    Perk("увеличение частоты выстрелов", 15, bust_shoot_cooldown),
-    Perk("шанс пробить врага насквозь", 20, chance_to_break_through),
-    Perk("убить всех врагов", 50, kill_all_enemies),
-]
+    Perk("Cкорость пули", 10, bust_speed, speed_up_pic),
+    Perk("Востановление", 15, health_plus, health_up_pic),
+    Perk("Лимит здоровья", 20, health_limit, max_health_pic),
+    Perk("Полоска здоровья", 50, health_bar, show_health_bar_pic),
+    Perk("Меньше стрелков", 10, chance_to_spawn_a_shooting_enemy, chance_to_spawn_a_shooting_enemy_pic),
+    Perk("Сдвиг окна", 20, bust_shrink_amount, shrink_up_pic),
+    Perk("Увеличить окно", 50, reset_win_scale, moment_push_pic),
+    Perk("увеличение урона", 15, bust_damage, damaged_up_pic),
+    Perk("Частота выстрелов", 15, bust_shoot_cooldown, fire_rate_up_pic),
+    Perk("Пробить насквозь", 20, chance_to_break_through, shoot_through_pic),
+    Perk("Убить всех врагов", 50, kill_all_enemies, kill_all_enemies_pick)]
 
 
 class PerksMenu:
@@ -435,6 +457,7 @@ class PerksMenu:
     def __init__(self):
         self.screen = screen
         self.font = font
+        self.font_perks = pygame.font.SysFont('arial', 16)
         # Случайным образом выбираем 3 различных перка из общего списка
         self.options = random.sample(perks, 3)
 
@@ -443,6 +466,11 @@ class PerksMenu:
         menu_active = True
         message = ""  # на случай если поинтов не хватит
         first_press_time = pygame.time.get_ticks()
+        pygame.display.set_mode((800, 800), pygame.RESIZABLE)
+        crosshair_image = pygame.Surface((20, 20), pygame.SRCALPHA)
+        pygame.draw.line(crosshair_image, WHITE, (10, 0), (10, 20), 2)
+        pygame.draw.line(crosshair_image, WHITE, (0, 10), (20, 10), 2)
+        pygame.mouse.set_visible(False)
 
         while menu_active:
             for event in pygame.event.get():
@@ -451,28 +479,25 @@ class PerksMenu:
                     quit()
 
             self.screen.fill(BLACK)
-            screen = pygame.display.set_mode((800, 800), pygame.RESIZABLE)
+            pygame.display.set_mode((800, 800), pygame.RESIZABLE)
             # Заголовок меню
             title_text = self.font.render("Меню перков", True, WHITE)
-            self.screen.blit(title_text, (800 // 2 - title_text.get_width() // 2, 800 // 2 - 200))
-
-            # Отображаем варианты перков
-            for i, perk in enumerate(self.options):
-                option_text = self.font.render(f"{i + 1}. {perk.name} - {perk.cost} поинтов", True, WHITE)
-                self.screen.blit(option_text,
-                                 (800 // 2 - option_text.get_width() // 2, 800 // 2 - 150 + i * 50))
-
+            self.screen.blit(title_text, (800 // 2 - title_text.get_width() // 2, 800 // 2 - 350))
             back_text = self.font.render("Нажмите [пробел] для выхода", True, WHITE)
-            self.screen.blit(back_text, (800 // 2 - back_text.get_width() // 2, 800 // 2 + 50))
+            self.screen.blit(back_text, (800 // 2 - back_text.get_width() // 2, 800 // 2 + 350))
+            for i, perk in enumerate(self.options):  # Отображаем варианты перков
+                option_text = self.font_perks.render(f"{i + 1}. {perk.name} - {perk.cost}", True, WHITE)
+                self.screen.blit(option_text,
+                                 (800 // 2 - perk.picture.get_width() // 2 + 200 * (i - 1), 400))
+                self.screen.blit(perk.picture,
+                                 (800 // 2 - perk.picture.get_width() // 2 + 200 * (i - 1), 100))
 
             # Вывод сообщения
             if message:
                 msg_text = self.font.render(message, True, RED)
-                self.screen.blit(msg_text, (800 // 2 - msg_text.get_width() // 2, 800 // 2 + 100))
-
+                self.screen.blit(msg_text, (800 // 2 - msg_text.get_width() // 2, 800 // 2 + 300))
             pygame.display.update()
             clock.tick(15)
-
             keys = pygame.key.get_pressed()
             if keys[pygame.K_SPACE]:
                 last_press_time = pygame.time.get_ticks()
@@ -512,12 +537,17 @@ def game_loop():
     pygame.mouse.set_visible(False)
 
     # музыка в игре
-    if random.randint(1, 3) == 1:
-        pygame.mixer.music.load('data/music/01. Windowkiller.mp3')
-    elif random.randint(1, 3) == 2:
-        pygame.mixer.music.load('data/music/02. Windowframe.mp3')
-    else:
-        pygame.mixer.music.load('data/music/03. Windowchill.mp3')
+    list_of_music = ['data/music/01. Windowkiller.mp3',
+                     'data/music/02. Windowframe.mp3',
+                     'data/music/Nitro_Fun_-_Cheat_Codes_VIP_64603577.mp3',
+                     'data/music/Le_Castle_Vania_-_Infinite_Ammo_64572038.mp3',
+                     'data/music/Styline_Tommie_Sunshine_-_BLACKOUT_Original_Mix_Original_Mix_66664034.mp3',
+                     'data/music/PRXSXNT_FXTURE_KXRAIN_-_CRUEL_78404168.mp3',
+                     'data/music/03. Windowchill.mp3'
+                     ]
+    rand_misic = random.choice(list_of_music)
+    pygame.mixer.music.load(rand_misic)
+    pygame.mixer.music.set_volume(0.5)
     pygame.mixer.music.play(loops = -1)
     first_press_time = pygame.time.get_ticks()
 
