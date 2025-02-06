@@ -617,7 +617,7 @@ def game_loop():
                 if enemy.is_hit(bullet):
                     if random.random() > Chance_to_break_through:
                         player.bullets.remove(bullet)
-                    if enemy.health - player.damage == 0:
+                    if enemy.health - player.damage <= 0:
                         enemies.remove(enemy)
                         TOTAL_ENEMIES += 1
                         first_one = True
