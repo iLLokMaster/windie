@@ -64,8 +64,8 @@ class Player:
         self.invulnerable_time = 0  # Время бессмертия
         self.invulnerable_duration = 1000  # 1 секунда бессмертия
         self.show_health_bar = False  # По умолчанию полоска здоровья скрыта
-        self.damage = 1
-        self.SHRINK_AMOUNT = 30
+        self.damage = 1  # урон
+        self.SHRINK_AMOUNT = 50  # на сколько пикселей увеличивать окно
 
     def draw_health_bar(self):
         """Отрисовка полоски здоровья игрока."""
@@ -240,9 +240,10 @@ class ShootingEnemy(Enemy):
 
     def __init__(self, x, y, health):
         super().__init__(x, y, health)
-        self.shoot_cooldown = 1000  # Время между выстрелами
+        self.shoot_cooldown = 2000  # Время между выстрелами
         self.last_shot_time = pygame.time.get_ticks()
         self.speed = 1  # Уменьшенная скорость стреляющего врага
+        self.health = 6
 
     def update(self):
         # Если атрибут направления ещё не задан, определяем его по положению врага.
@@ -434,8 +435,8 @@ fire_rate_up_pic = pygame.image.load('data/pic/fire rate.png')
 fire_rate_up_pic = pygame.transform.scale(fire_rate_up_pic, (200, 300))
 shoot_through_pic = pygame.image.load('data/pic/shot throught.png')
 shoot_through_pic = pygame.transform.scale(shoot_through_pic, (200, 300))
-kill_all_enemies_pick = pygame.image.load('data/pic/kill all.png')
-kill_all_enemies_pick = pygame.transform.scale(kill_all_enemies_pick, (200, 300))
+kill_all_enemies_pic = pygame.image.load('data/pic/kill all.png')
+kill_all_enemies_pic = pygame.transform.scale(kill_all_enemies_pic, (200, 300))
 perks = [
     Perk("Cкорость пули", 10, bust_speed, speed_up_pic),
     Perk("Востановление", 15, health_plus, health_up_pic),
@@ -447,7 +448,7 @@ perks = [
     Perk("увеличение урона", 15, bust_damage, damaged_up_pic),
     Perk("Частота выстрелов", 15, bust_shoot_cooldown, fire_rate_up_pic),
     Perk("Пробить насквозь", 20, chance_to_break_through, shoot_through_pic),
-    Perk("Убить всех врагов", 50, kill_all_enemies, kill_all_enemies_pick)]
+    Perk("Убить всех врагов", 50, kill_all_enemies, kill_all_enemies_pic)]
 
 
 class PerksMenu:
@@ -574,6 +575,8 @@ def game_loop():
                 perks_menu = PerksMenu()
                 perks_menu.run()
                 first_press_time = pygame.time.get_ticks()
+        if keys[pygame.K_ESCAPE]:
+            exit()
 
         # постепенное усложнение игры
         if TOTAL_ENEMIES % 10 == 0:
