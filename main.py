@@ -43,6 +43,8 @@ sprite_image_main = pygame.image.load('data/pic/1_rang_enemy.png')
 sprite_image_main = pygame.transform.scale(sprite_image_main, (50, 50))
 sprite_image_shoot = pygame.image.load('data/pic/3_rang_enemy.png')
 sprite_image_shoot = pygame.transform.scale(sprite_image_shoot, (50, 50))
+sprite_image_fast = pygame.image.load('data/pic/2_rang_enemy.png')
+sprite_image_fast = pygame.transform.scale(sprite_image_fast, (50, 50))
 sprite_image_player = pygame.image.load('data/pic/player1.png')
 sprite_image_player = pygame.transform.scale(sprite_image_player, (PLAYER_SCALE, PLAYER_SCALE))
 sprite_image_enemy_bullet = pygame.image.load('data/pic/bullet_for_enemy.png')
@@ -242,8 +244,7 @@ class ShootingEnemy(Enemy):
         super().__init__(x, y, health)
         self.shoot_cooldown = 2000  # Время между выстрелами
         self.last_shot_time = pygame.time.get_ticks()
-        self.speed = 1  # Уменьшенная скорость стреляющего врага
-        self.health = 6
+        self.speed = 1  # скорость врага
 
     def update(self):
         # Если атрибут направления ещё не задан, определяем его по положению врага.
@@ -296,6 +297,34 @@ class ShootingEnemy(Enemy):
             bullet.set_velocity_towards_cursor(player.x, player.y)
             enemy_bullets.append(bullet)  # Добавление пули в список пуль врагов
             self.last_shot_time = current_time
+
+
+class FastEnemy(Enemy):
+    def __init__(self, x, y, health):
+        super().__init__(x, y, health)
+        self.ticks = 0
+        self.dx= player.x - self.x + random.randint(-40, 40)
+        self.dy = player.y - self.y + random.randint(-40, 40)
+
+    def update(self):
+        """Движение врага к игроку."""
+        if self.ticks < 2000:
+            self.dx = player.x - self.x + random.randint(-40, 40)
+            self.dy = player.y - self.y + random.randint(-40, 40)
+            distance = math.sqrt(self.dx ** 2 + self.dy ** 2)
+            if distance > 0:
+                self.dx /= distance  # Нормализация вектора
+                self.dy /= distance
+        if self.ticks >= 2000:
+            self.x += self.dx * self.speed
+            self.y += self.dy * self.speed
+            if self.ticks == 3000:
+                self.ticks = 0
+
+    def draw(self, enemy):
+        """отрисовка"""
+        screen.blit(sprite_image_fast, (self.x - 25, self.y - 25))
+        self.draw_health_bar()
 
 
 class Point:
@@ -689,12 +718,15 @@ def spawn_enemy():
 
     # Случайный выбор типа врага (обычный или стреляющий)
     if TOTAL_ENEMIES >= 25 + random.randint(0, 5):
+        if TOTAL_ENEMIES >= 50 + random.randint(0, 5):
+            enemies.append(FastEnemy(x, y, 3))
         if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
-            enemies.append(ShootingEnemy(x, y, 10))
+            enemies.append(ShootingEnemy(x, y, 6))
         else:
             enemies.append(Enemy(x, y, 2))
     else:
-        enemies.append(Enemy(x, y, 2))
+        enemies.append(FastEnemy(x, y, 1))
+        # enemies.append(Enemy(x, y, 2))
 
 
 def game_over():
