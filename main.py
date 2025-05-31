@@ -195,7 +195,7 @@ class Enemy:
         self.y = y
         self.radius = ENEMY_RADIUS
         self.health = health
-        self.mass = health
+        self.mass = (health // 2) + (health % 2)
         self.speed = 2  # Скорость обычного врага
 
     def draw(self, enemy):
@@ -337,16 +337,9 @@ class Point:
     def __init__(self, mass, x, y):
         """Создание нового поинта. вычисление его размера по количеству добавляемых очков"""
         self.speed = 1.1
-        self.mass = mass
+        self.radius = mass + 2
         self.x = x
         self.y = y
-
-        if self.mass == 1:
-            self.radius = 2
-        elif 1 < self.mass < 5:
-            self.radius = 5
-        else:
-            self.radius = 7
 
     def draw(self):
         """отрисовка."""
@@ -544,6 +537,7 @@ class PerksMenu:
                     if COUNT_OF_POINTS >= selected_perk.cost:
                         COUNT_OF_POINTS -= selected_perk.cost
                         selected_perk.purchase()
+                        # вот тут надо добавить выбор случайного перка из списка вместо взятого сейчас
                         menu_active = False
                     else:
                         message = "Недостаточно поинтов для покупки!"
@@ -661,7 +655,7 @@ def game_loop():
                         points.append(Point(enemy.mass, enemy.x, enemy.y))
                         break
                     else:
-                        enemy.health -= 1
+                        enemy.health -= player.damage
                         break
             enemy.draw(enemy)
 
@@ -684,7 +678,7 @@ def game_loop():
         for point in points[:]:
             if point.is_hit():
                 points.remove(point)
-                COUNT_OF_POINTS += 1
+                COUNT_OF_POINTS += point.radius - 2
                 continue  # переходим к следующему поинту, чтобы не обновлять уже удалённый объект
             point.update()
             point.draw()
