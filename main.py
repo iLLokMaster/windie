@@ -24,6 +24,7 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 HEALTH_BAR_COLOR = (0, 128, 0)
 show_health_bar = False
+first_random_chose = True
 COUNT_OF_POINTS = 0
 TOTAL_ENEMIES = 0
 Chance_to_spawn_a_shooting_enemy = 0.25
@@ -481,11 +482,14 @@ class PerksMenu:
     Каждый перк имеет свою стоимость, и при повторной покупке его цена увеличивается."""
 
     def __init__(self):
+        global first_random_chose
         self.screen = screen
         self.font = font
         self.font_perks = pygame.font.SysFont('arial', 16)
         # Случайным образом выбираем 3 различных перка из общего списка
-        self.options = random.sample(perks, 3)
+        if first_random_chose:
+            self.options = random.sample(perks, 3)
+            first_random_chose = False
 
     def run(self):
         global COUNT_OF_POINTS  # счёт поинтов игрока
@@ -537,8 +541,8 @@ class PerksMenu:
                     if COUNT_OF_POINTS >= selected_perk.cost:
                         COUNT_OF_POINTS -= selected_perk.cost
                         selected_perk.purchase()
+                        self.options[index] = random.choice(perks)
                         # вот тут надо добавить выбор случайного перка из списка вместо взятого сейчас
-                        menu_active = False
                     else:
                         message = "Недостаточно поинтов для покупки!"
 
@@ -598,7 +602,8 @@ def game_loop():
         if keys[pygame.K_SPACE]:
             last_press_time = pygame.time.get_ticks()
             if last_press_time - first_press_time > 400:
-                perks_menu = PerksMenu()
+                if first_random_chose:
+                    perks_menu = PerksMenu()
                 perks_menu.run()
                 first_press_time = pygame.time.get_ticks()
         if keys[pygame.K_ESCAPE]:
