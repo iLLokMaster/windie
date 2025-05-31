@@ -41,6 +41,7 @@ screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), )
 pygame.display.set_caption("Shooting Game")
 clock = pygame.time.Clock()
 pygame.event.set_grab(True)
+
 sprite_image_main = pygame.image.load('data/pic/1_rang_enemy.png')
 sprite_image_main = pygame.transform.scale(sprite_image_main, (50, 50))
 sprite_image_shoot = pygame.image.load('data/pic/3_rang_enemy.png')
@@ -428,7 +429,7 @@ def bust_shrink_amount():
     if player.SHRINK_AMOUNT < 200:
         player.SHRINK_AMOUNT += 5
     else:
-        perks.remove(Perk("Сдвиг окна", 20, bust_shrink_amount, shrink_up_pic),)
+        perks.remove(Perk("Сдвиг окна", 20, bust_shrink_amount, shrink_up_pic), )
 
 
 def bust_damage():
@@ -452,7 +453,8 @@ speed_up_pic = pygame.transform.scale(pygame.image.load('data/pic/bust speed.png
 health_up_pic = pygame.transform.scale(pygame.image.load('data/pic/add health.png'), (200, 300))
 max_health_pic = pygame.transform.scale(pygame.image.load('data/pic/max health.png'), (200, 300))
 show_health_bar_pic = pygame.transform.scale(pygame.image.load('data/pic/show heath bar.png'), (200, 300))
-chance_to_spawn_a_shooting_enemy_pic = pygame.transform.scale(pygame.image.load('data/pic/chance shoot.png'), (200, 300))
+chance_to_spawn_a_shooting_enemy_pic = pygame.transform.scale(pygame.image.load('data/pic/chance shoot.png'),
+                                                              (200, 300))
 shrink_up_pic = pygame.transform.scale(pygame.image.load('data/pic/wall push.png'), (200, 300))
 moment_push_pic = pygame.transform.scale(pygame.image.load('data/pic/moment push.png'), (200, 300))
 damaged_up_pic = pygame.transform.scale(pygame.image.load('data/pic/damage.png'), (200, 300))
@@ -473,16 +475,49 @@ perks = [
     Perk("Убить всех врагов", 50, kill_all_enemies, kill_all_enemies_pic)]
 
 
-# class BossFight:
-#     """Уровень с боссом"""
-#
-#     def __init__(self):
-#
-#
-#     def run(self):
-#
-#         while boss_active:
-#
+class BossFight:
+    """Уровень с боссом"""
+
+    def __init__(self):
+        pass
+
+    def run(self):
+        global WINDOW_WIDTH, WINDOW_HEIGHT, screen
+        size = pygame.display.get_surface().get_size()
+        WINDOW_WIDTH, WINDOW_HEIGHT = size
+        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
+        first_press_time = pygame.time.get_ticks()
+        while True:
+            screen.fill(BLACK)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+            # обработка ввода
+            if pygame.mouse.get_pressed()[0]:
+                player.shoot()
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_w]:
+                player.move(0, -5)
+            if keys[pygame.K_s]:
+                player.move(0, 5)
+            if keys[pygame.K_a]:
+                player.move(-5, 0)
+            if keys[pygame.K_d]:
+                player.move(5, 0)
+            if keys[pygame.K_SPACE]:
+                last_press_time = pygame.time.get_ticks()
+                if last_press_time - first_press_time > 400:
+                    if first_random_chose:
+                        perks_menu = PerksMenu()
+                    perks_menu.run()
+                    first_press_time = pygame.time.get_ticks()
+            if keys[pygame.K_ESCAPE]:
+                exit()
+
+            player.update_bullets()
+            player.update()
+            pygame.display.update()
 
 
 class PerksMenu:
@@ -734,22 +769,27 @@ def spawn_enemy():
         y = random.randint(0, WINDOW_HEIGHT)
 
     # Случайный выбор типа врага (обычный или стреляющий)
-    if TOTAL_ENEMIES >= 25 + random.randint(0, 5):
-        if TOTAL_ENEMIES >= 50 + random.randint(0, 5):
-            if random.random() < Chance_to_spawn_a_fast_enemy:  # 50% шанс на создание стреляющего врага
-                enemies.append(FastEnemy(x, y, 3))
+    if TOTAL_ENEMIES >= 90:
+        if len(enemies) == 0:
+            boss = BossFight()
+            boss.run()
+    else:
+        if TOTAL_ENEMIES >= 25 + random.randint(0, 5):
+            if TOTAL_ENEMIES >= 50 + random.randint(0, 5):
+                if random.random() < Chance_to_spawn_a_fast_enemy:  # 50% шанс на создание стреляющего врага
+                    enemies.append(FastEnemy(x, y, 3))
+                else:
+                    if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
+                        enemies.append(ShootingEnemy(x, y, 3))
+                    else:
+                        enemies.append(Enemy(x, y, 2))
             else:
                 if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
                     enemies.append(ShootingEnemy(x, y, 3))
                 else:
                     enemies.append(Enemy(x, y, 2))
         else:
-            if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
-                enemies.append(ShootingEnemy(x, y, 3))
-            else:
-                enemies.append(Enemy(x, y, 2))
-    else:
-        enemies.append(Enemy(x, y, 2))
+            enemies.append(Enemy(x, y, 2))
 
 
 def game_over():
