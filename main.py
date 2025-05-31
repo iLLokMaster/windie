@@ -27,6 +27,7 @@ show_health_bar = False
 COUNT_OF_POINTS = 0
 TOTAL_ENEMIES = 0
 Chance_to_spawn_a_shooting_enemy = 0.25
+Chance_to_spawn_a_fast_enemy = 0.2
 Chance_to_break_through = 0
 
 # настройка pygame и окна
@@ -303,23 +304,25 @@ class FastEnemy(Enemy):
     def __init__(self, x, y, health):
         super().__init__(x, y, health)
         self.ticks = 0
-        self.dx= player.x - self.x + random.randint(-40, 40)
+        self.dx = player.x - self.x + random.randint(-40, 40)
         self.dy = player.y - self.y + random.randint(-40, 40)
+        self.speed = 3
 
     def update(self):
         """Движение врага к игроку."""
-        if self.ticks < 2000:
+        if self.ticks < 100:
             self.dx = player.x - self.x + random.randint(-40, 40)
             self.dy = player.y - self.y + random.randint(-40, 40)
             distance = math.sqrt(self.dx ** 2 + self.dy ** 2)
             if distance > 0:
                 self.dx /= distance  # Нормализация вектора
                 self.dy /= distance
-        if self.ticks >= 2000:
+        if self.ticks >= 100:
             self.x += self.dx * self.speed
             self.y += self.dy * self.speed
-            if self.ticks == 3000:
+            if self.ticks == 200:
                 self.ticks = 0
+        self.ticks += 1
 
     def draw(self, enemy):
         """отрисовка"""
@@ -719,14 +722,20 @@ def spawn_enemy():
     # Случайный выбор типа врага (обычный или стреляющий)
     if TOTAL_ENEMIES >= 25 + random.randint(0, 5):
         if TOTAL_ENEMIES >= 50 + random.randint(0, 5):
-            enemies.append(FastEnemy(x, y, 3))
-        if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
-            enemies.append(ShootingEnemy(x, y, 6))
+            if random.random() < Chance_to_spawn_a_fast_enemy:  # 50% шанс на создание стреляющего врага
+                enemies.append(FastEnemy(x, y, 3))
+            else:
+                if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
+                    enemies.append(ShootingEnemy(x, y, 3))
+                else:
+                    enemies.append(Enemy(x, y, 2))
         else:
-            enemies.append(Enemy(x, y, 2))
+            if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
+                enemies.append(ShootingEnemy(x, y, 3))
+            else:
+                enemies.append(Enemy(x, y, 2))
     else:
-        enemies.append(FastEnemy(x, y, 1))
-        # enemies.append(Enemy(x, y, 2))
+        enemies.append(Enemy(x, y, 2))
 
 
 def game_over():
