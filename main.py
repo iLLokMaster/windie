@@ -393,12 +393,14 @@ def health_plus():
 
 def health_limit():
     player.max_health += 20
+    player.health += 20
 
 
 def health_bar():
     global show_health_bar
     show_health_bar = True
     player.show_health_bar = True
+    perks.remove(Perk("Полоска здоровья", 50, health_bar, show_health_bar_pic))
 
 
 def chance_to_spawn_a_shooting_enemy():
@@ -425,6 +427,8 @@ def bust_speed():
 def bust_shrink_amount():
     if player.SHRINK_AMOUNT < 200:
         player.SHRINK_AMOUNT += 5
+    else:
+        perks.remove(Perk("Сдвиг окна", 20, bust_shrink_amount, shrink_up_pic),)
 
 
 def bust_damage():
@@ -434,35 +438,27 @@ def bust_damage():
 def bust_shoot_cooldown():
     if player.shoot_cooldown > 100:
         player.shoot_cooldown -= 20
+    else:
+        perks.remove(Perk("Частота выстрелов", 15, bust_shoot_cooldown, fire_rate_up_pic))
 
 
 def chance_to_break_through():
     global Chance_to_break_through
-    Chance_to_break_through += 0.1
+    if Chance_to_break_through != 1:
+        Chance_to_break_through += 0.1
 
 
-speed_up_pic = pygame.image.load('data/pic/bust speed.png')
-speed_up_pic = pygame.transform.scale(speed_up_pic, (200, 300))
-health_up_pic = pygame.image.load('data/pic/add health.png')
-health_up_pic = pygame.transform.scale(health_up_pic, (200, 300))
-max_health_pic = pygame.image.load('data/pic/max health.png')
-max_health_pic = pygame.transform.scale(max_health_pic, (200, 300))
-show_health_bar_pic = pygame.image.load('data/pic/show heath bar.png')
-show_health_bar_pic = pygame.transform.scale(show_health_bar_pic, (200, 300))
-chance_to_spawn_a_shooting_enemy_pic = pygame.image.load('data/pic/chance shoot.png')
-chance_to_spawn_a_shooting_enemy_pic = pygame.transform.scale(chance_to_spawn_a_shooting_enemy_pic, (200, 300))
-shrink_up_pic = pygame.image.load('data/pic/wall push.png')
-shrink_up_pic = pygame.transform.scale(shrink_up_pic, (200, 300))
-moment_push_pic = pygame.image.load('data/pic/moment push.png')
-moment_push_pic = pygame.transform.scale(moment_push_pic, (200, 300))
-damaged_up_pic = pygame.image.load('data/pic/damage.png')
-damaged_up_pic = pygame.transform.scale(damaged_up_pic, (200, 300))
-fire_rate_up_pic = pygame.image.load('data/pic/fire rate.png')
-fire_rate_up_pic = pygame.transform.scale(fire_rate_up_pic, (200, 300))
-shoot_through_pic = pygame.image.load('data/pic/shot throught.png')
-shoot_through_pic = pygame.transform.scale(shoot_through_pic, (200, 300))
-kill_all_enemies_pic = pygame.image.load('data/pic/kill all.png')
-kill_all_enemies_pic = pygame.transform.scale(kill_all_enemies_pic, (200, 300))
+speed_up_pic = pygame.transform.scale(pygame.image.load('data/pic/bust speed.png'), (200, 300))
+health_up_pic = pygame.transform.scale(pygame.image.load('data/pic/add health.png'), (200, 300))
+max_health_pic = pygame.transform.scale(pygame.image.load('data/pic/max health.png'), (200, 300))
+show_health_bar_pic = pygame.transform.scale(pygame.image.load('data/pic/show heath bar.png'), (200, 300))
+chance_to_spawn_a_shooting_enemy_pic = pygame.transform.scale(pygame.image.load('data/pic/chance shoot.png'), (200, 300))
+shrink_up_pic = pygame.transform.scale(pygame.image.load('data/pic/wall push.png'), (200, 300))
+moment_push_pic = pygame.transform.scale(pygame.image.load('data/pic/moment push.png'), (200, 300))
+damaged_up_pic = pygame.transform.scale(pygame.image.load('data/pic/damage.png'), (200, 300))
+fire_rate_up_pic = pygame.transform.scale(pygame.image.load('data/pic/fire rate.png'), (200, 300))
+shoot_through_pic = pygame.transform.scale(pygame.image.load('data/pic/shot throught.png'), (200, 300))
+kill_all_enemies_pic = pygame.transform.scale(pygame.image.load('data/pic/kill all.png'), (200, 300))
 perks = [
     Perk("Cкорость пули", 10, bust_speed, speed_up_pic),
     Perk("Востановление", 15, health_plus, health_up_pic),
@@ -475,6 +471,18 @@ perks = [
     Perk("Частота выстрелов", 15, bust_shoot_cooldown, fire_rate_up_pic),
     Perk("Пробить насквозь", 20, chance_to_break_through, shoot_through_pic),
     Perk("Убить всех врагов", 50, kill_all_enemies, kill_all_enemies_pic)]
+
+
+# class BossFight:
+#     """Уровень с боссом"""
+#
+#     def __init__(self):
+#
+#
+#     def run(self):
+#
+#         while boss_active:
+#
 
 
 class PerksMenu:
@@ -510,11 +518,14 @@ class PerksMenu:
 
             self.screen.fill(BLACK)
             pygame.display.set_mode((800, 800), pygame.RESIZABLE)
-            # Заголовок меню
+            # Заголовок меню и инструкция
             title_text = self.font.render("Меню перков", True, WHITE)
             self.screen.blit(title_text, (800 // 2 - title_text.get_width() // 2, 800 // 2 - 350))
             back_text = self.font.render("Нажмите [пробел] для выхода", True, WHITE)
-            self.screen.blit(back_text, (800 // 2 - back_text.get_width() // 2, 800 // 2 + 350))
+            self.screen.blit(back_text, (800 // 2 - back_text.get_width() // 2, 800 // 2 + 375))
+            restock_text = self.font.render("Нажмите [r], чтобы сменить перки (10)", True, WHITE)
+            self.screen.blit(restock_text, (800 // 2 - restock_text.get_width() // 2, 800 // 2 + 350))
+
             for i, perk in enumerate(self.options):  # Отображаем варианты перков
                 option_text = self.font_perks.render(f"{i + 1}. {perk.name} - {perk.cost}", True, WHITE)
                 self.screen.blit(option_text,
@@ -525,7 +536,7 @@ class PerksMenu:
             # Вывод сообщения
             if message:
                 msg_text = self.font.render(message, True, RED)
-                self.screen.blit(msg_text, (800 // 2 - msg_text.get_width() // 2, 800 // 2 + 300))
+                self.screen.blit(msg_text, (800 // 2 - msg_text.get_width() // 2, 800 // 2 + 250))
             pygame.display.update()
             clock.tick(15)
             keys = pygame.key.get_pressed()
@@ -533,6 +544,12 @@ class PerksMenu:
                 last_press_time = pygame.time.get_ticks()
                 if last_press_time - first_press_time > 400:
                     menu_active = False
+            if keys[pygame.K_r]:
+                if COUNT_OF_POINTS >= 10:
+                    COUNT_OF_POINTS -= 10
+                    self.options = random.sample(perks, 3)
+                else:
+                    message = "Недостаточно поинтов для покупки!"
 
             # Обработка покупки перка
             for key_val, index in zip([pygame.K_1, pygame.K_2, pygame.K_3], range(3)):
@@ -542,10 +559,8 @@ class PerksMenu:
                         COUNT_OF_POINTS -= selected_perk.cost
                         selected_perk.purchase()
                         self.options[index] = random.choice(perks)
-                        # вот тут надо добавить выбор случайного перка из списка вместо взятого сейчас
                     else:
                         message = "Недостаточно поинтов для покупки!"
-
                     pygame.time.delay(300)
 
 
