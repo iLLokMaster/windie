@@ -652,7 +652,7 @@ def game_loop():
                         first_one = True
                         if TOTAL_ENEMIES == 1:
                             SPAWN_INTERVAL = 2000
-                        points.append(Point(enemy.mass, enemy.x, enemy.y))
+                        points.append(Point(enemy.mass + random.randint(0, 1), enemy.x, enemy.y))
                         break
                     else:
                         enemy.health -= player.damage
