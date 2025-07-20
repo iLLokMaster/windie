@@ -2,6 +2,8 @@ import os
 import pygame
 import random
 import math
+import pyautogui
+
 
 # константы
 enemies = []
@@ -13,7 +15,8 @@ BULLET_SPEED = 10
 SHRINK_INTERVAL = 75
 SPAWN_INTERVAL = 6000
 first_random_chose = True
-COUNT_OF_POINTS = 0
+SHRINK_AMOUNT_false = False
+COUNT_OF_POINTS = 1
 TOTAL_ENEMIES = 0
 
 WHITE = (255, 255, 255)
@@ -126,16 +129,22 @@ class Player:
             bullet.update()
             if bullet.is_outside_screen():
                 self.bullets.remove(bullet)
+                screen_width, screen_height = pyautogui.size()
 
                 # Расширение окна вправо
                 if bullet.x >= WINDOW_WIDTH:
-                    WINDOW_WIDTH += self.SHRINK_AMOUNT
-                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+                    if WINDOW_WIDTH + self.SHRINK_AMOUNT < screen_width - 30:
+                        WINDOW_WIDTH += self.SHRINK_AMOUNT
+                    else:
+                        WINDOW_WIDTH = screen_width - 30
 
                 # Расширение окна вниз
                 elif bullet.y >= WINDOW_HEIGHT:
-                    WINDOW_HEIGHT += self.SHRINK_AMOUNT
-                    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+                    if WINDOW_HEIGHT + self.SHRINK_AMOUNT < screen_height - 60:
+                        WINDOW_HEIGHT += self.SHRINK_AMOUNT
+                    else:
+                        WINDOW_HEIGHT = screen_height - 60
+                screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 
     def take_damage(self, amount):
         """Уменьшение здоровья игрока при получении урона от врага"""
@@ -406,7 +415,6 @@ def health_limit():
 
 def health_bar():
     player.show_health_bar = True
-    perks.remove(Perk("Полоска здоровья", 50, health_bar, show_health_bar_pic))
 
 
 def chance_to_spawn_a_shooting_enemy():
@@ -434,7 +442,8 @@ def bust_shrink_amount():
     if player.SHRINK_AMOUNT < 200:
         player.SHRINK_AMOUNT += 5
     else:
-        perks.remove(Perk("Сдвиг окна", 20, bust_shrink_amount, shrink_up_pic), )
+        global SHRINK_AMOUNT_false
+        SHRINK_AMOUNT_false = True
 
 
 def bust_damage():
@@ -481,10 +490,11 @@ class PerksMenu:
         self.options = random.sample(perks, 3)
 
     def run(self):
-        global COUNT_OF_POINTS  # счёт поинтов игрока
+        global COUNT_OF_POINTS, perks
         menu_active = True
         message = ""  # на случай если поинтов не хватит
         first_press_time = pygame.time.get_ticks()
+        first_press_time_r = pygame.time.get_ticks()
         pygame.display.set_mode((800, 800), pygame.RESIZABLE)
         crosshair_image = pygame.Surface((20, 20), pygame.SRCALPHA)
         pygame.draw.line(crosshair_image, WHITE, (10, 0), (10, 20), 2)
@@ -525,12 +535,16 @@ class PerksMenu:
                 last_press_time = pygame.time.get_ticks()
                 if last_press_time - first_press_time > 400:
                     menu_active = False
+
             if keys[pygame.K_r]:
-                if COUNT_OF_POINTS >= 10:
-                    COUNT_OF_POINTS -= 10
-                    self.options = random.sample(perks, 3)
-                else:
-                    message = "Недостаточно поинтов для покупки!"
+                last_press_time_r = pygame.time.get_ticks()
+                if last_press_time_r - first_press_time_r > 400:
+                    first_press_time_r = pygame.time.get_ticks()
+                    if COUNT_OF_POINTS >= 10:
+                        COUNT_OF_POINTS -= 10
+                        self.options = random.sample(perks, 3)
+                    else:
+                        message = "Недостаточно поинтов для покупки!"
 
             # Обработка покупки перка
             for key_val, index in zip([pygame.K_1, pygame.K_2, pygame.K_3], range(3)):
@@ -539,7 +553,11 @@ class PerksMenu:
                     if COUNT_OF_POINTS >= selected_perk.cost:
                         COUNT_OF_POINTS -= selected_perk.cost
                         selected_perk.purchase()
-                        self.options[index] = random.choice(perks)
+                        if (selected_perk.name == "Полоска здоровья" or
+                                (selected_perk.name == "Сдвиг окна" and SHRINK_AMOUNT_false)):
+                            perks = list(filter(lambda p: p.name != "Полоска здоровья", perks))
+                        new_perk = random.choice(perks)
+                        self.options[index] = new_perk
                     else:
                         message = "Недостаточно поинтов для покупки!"
                     pygame.time.delay(300)
@@ -712,11 +730,11 @@ def spawn_enemy():
         x = WINDOW_WIDTH
         y = random.randint(0, WINDOW_HEIGHT)
 
-    table = [[Enemy, 1, 0, 2],
-             [ShootingEnemy, Chance_to_spawn_a_shooting_enemy, 25, 6],
-             [FastEnemy, Chance_to_spawn_a_fast_enemy, 50, 8]]
+    table_of_enemys_type = [[Enemy, 1, 0, 2],
+                            [ShootingEnemy, Chance_to_spawn_a_shooting_enemy, 25, 6],
+                            [FastEnemy, Chance_to_spawn_a_fast_enemy, 50, 8]]
 
-    sorted_table = sorted(table, key = lambda x: x[2])
+    sorted_table = sorted(table_of_enemys_type, key = lambda x: x[2])
     for enemy_type, spawn_chance, kill_count, xp in reversed(sorted_table):
         if random.random() <= spawn_chance:
             if TOTAL_ENEMIES >= kill_count:
