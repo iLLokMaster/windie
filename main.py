@@ -7,26 +7,20 @@ import math
 enemies = []
 points = []
 enemy_bullets = []
-PLAYER_SCALE = 50
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
-PLAYER_RADIUS = 25
-BULLET_RADIUS = 5
 BULLET_SPEED = 10
-BULLET_COLOR = (255, 255, 255)
 SHRINK_INTERVAL = 75
-ENEMY_RADIUS = 20
-ENEMY_COLOR = (0, 255, 0)
-POINT_COLOR = (128, 0, 128)
 SPAWN_INTERVAL = 6000
+first_random_chose = True
+COUNT_OF_POINTS = 0
+TOTAL_ENEMIES = 0
+
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 HEALTH_BAR_COLOR = (0, 128, 0)
-show_health_bar = False
-first_random_chose = True
-COUNT_OF_POINTS = 0
-TOTAL_ENEMIES = 0
+
 Chance_to_spawn_a_shooting_enemy = 0.25
 Chance_to_spawn_a_fast_enemy = 0.2
 Chance_to_break_through = 0
@@ -49,9 +43,22 @@ sprite_image_shoot = pygame.transform.scale(sprite_image_shoot, (50, 50))
 sprite_image_fast = pygame.image.load('data/pic/2_rang_enemy.png')
 sprite_image_fast = pygame.transform.scale(sprite_image_fast, (50, 50))
 sprite_image_player = pygame.image.load('data/pic/player1.png')
-sprite_image_player = pygame.transform.scale(sprite_image_player, (PLAYER_SCALE, PLAYER_SCALE))
+sprite_image_player = pygame.transform.scale(sprite_image_player, (50, 50))
 sprite_image_enemy_bullet = pygame.image.load('data/pic/bullet_for_enemy.png')
 sprite_image_enemy_bullet = pygame.transform.scale(sprite_image_enemy_bullet, (100, 100))
+
+speed_up_pic = pygame.transform.scale(pygame.image.load('data/pic/bust speed.png'), (200, 300))
+health_up_pic = pygame.transform.scale(pygame.image.load('data/pic/add health.png'), (200, 300))
+max_health_pic = pygame.transform.scale(pygame.image.load('data/pic/max health.png'), (200, 300))
+show_health_bar_pic = pygame.transform.scale(pygame.image.load('data/pic/show heath bar.png'), (200, 300))
+chance_to_spawn_a_shooting_enemy_pic = pygame.transform.scale(pygame.image.load('data/pic/chance shoot.png'),
+                                                              (200, 300))
+shrink_up_pic = pygame.transform.scale(pygame.image.load('data/pic/wall push.png'), (200, 300))
+moment_push_pic = pygame.transform.scale(pygame.image.load('data/pic/moment push.png'), (200, 300))
+damaged_up_pic = pygame.transform.scale(pygame.image.load('data/pic/damage.png'), (200, 300))
+fire_rate_up_pic = pygame.transform.scale(pygame.image.load('data/pic/fire rate.png'), (200, 300))
+shoot_through_pic = pygame.transform.scale(pygame.image.load('data/pic/shot throught.png'), (200, 300))
+kill_all_enemies_pic = pygame.transform.scale(pygame.image.load('data/pic/kill all.png'), (200, 300))
 
 
 class Player:
@@ -60,28 +67,27 @@ class Player:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.radius = PLAYER_RADIUS
-        self.bullets = []
-        self.shoot_cooldown = 500
+        self.bullets = []  # список пулей игрока
         self.last_shot_time = pygame.time.get_ticks()
+        self.damage = 1  # урон
+        self.shoot_cooldown = 500
+        self.radius = 25
         self.health = 10
-        self.max_health = 10  # Добавлено: максимальное здоровье
+        self.max_health = 10  # максимальное здоровье
         self.invulnerable_time = 0  # Время бессмертия
         self.invulnerable_duration = 1000  # 1 секунда бессмертия
-        self.show_health_bar = False  # По умолчанию полоска здоровья скрыта
-        self.damage = 1  # урон
         self.SHRINK_AMOUNT = 50  # на сколько пикселей увеличивать окно
+        self.show_health_bar = False  # По умолчанию полоска здоровья скрыта
 
     def draw_health_bar(self):
         """Отрисовка полоски здоровья игрока."""
-        if not self.show_health_bar:
-            return
-        bar_width = 200
-        bar_height = 20
-        health_ratio = self.health / self.max_health  # Используем max_health
-        current_width = int(bar_width * health_ratio)
-        pygame.draw.rect(screen, HEALTH_BAR_COLOR, (10, 10, current_width, bar_height))
-        pygame.draw.rect(screen, WHITE, (10, 10, bar_width, bar_height), 2)
+        if self.show_health_bar:
+            bar_width = 200
+            bar_height = 20
+            health_ratio = self.health / self.max_health  # Используем max_health
+            current_width = int(bar_width * health_ratio)
+            pygame.draw.rect(screen, HEALTH_BAR_COLOR, (10, 10, current_width, bar_height))
+            pygame.draw.rect(screen, WHITE, (10, 10, bar_width, bar_height), 2)
 
     def draw(self, counter_text, counter_x, counter_y):
         """Отрисовка персонажа на холсте."""
@@ -89,7 +95,7 @@ class Player:
             # Мигаем игрока, когда он бессмертен
             if (pygame.time.get_ticks() // 100) % 2 == 0:
                 return  # Не отрисовываем игрока
-        screen.blit(sprite_image_player, (self.x - PLAYER_SCALE // 2, self.y - PLAYER_SCALE // 2))
+        screen.blit(sprite_image_player, (self.x - self.radius, self.y - self.radius))
         screen.blit(counter_text, (counter_x, counter_y))
         for bullet in self.bullets:
             bullet.draw()
@@ -151,13 +157,13 @@ class Bullet:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.radius = BULLET_RADIUS
+        self.radius = 5
         self.dx = 0
         self.dy = -BULLET_SPEED
 
     def draw(self):
         """Отрисовка пули на холсте."""
-        pygame.draw.circle(screen, BULLET_COLOR, (self.x, self.y), self.radius)
+        pygame.draw.circle(screen, WHITE, (self.x, self.y), self.radius)
 
     def update(self):
         """Обновление положения пули на экране."""
@@ -195,7 +201,7 @@ class Enemy:
     def __init__(self, x, y, health):
         self.x = x
         self.y = y
-        self.radius = ENEMY_RADIUS
+        self.radius = 20
         self.health = health
         self.mass = (health // 2) + (health % 2)
         self.speed = 2  # Скорость обычного врага
@@ -207,7 +213,7 @@ class Enemy:
 
     def draw_health_bar(self):
         """Отображение полоски здоровья врага."""
-        if show_health_bar:
+        if player.show_health_bar:
             bar_width = 40
             bar_height = 5
             health_ratio = self.health / self.mass
@@ -342,10 +348,11 @@ class Point:
         self.radius = mass + 2
         self.x = x
         self.y = y
+        self.color = (128, 0, 128)
 
     def draw(self):
         """отрисовка."""
-        pygame.draw.circle(screen, POINT_COLOR, (self.x, self.y), self.radius)
+        pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
 
     def is_hit(self):
         """Проверка, попал ли игрок в поинт."""
@@ -398,8 +405,6 @@ def health_limit():
 
 
 def health_bar():
-    global show_health_bar
-    show_health_bar = True
     player.show_health_bar = True
     perks.remove(Perk("Полоска здоровья", 50, health_bar, show_health_bar_pic))
 
@@ -449,18 +454,6 @@ def chance_to_break_through():
         Chance_to_break_through += 0.1
 
 
-speed_up_pic = pygame.transform.scale(pygame.image.load('data/pic/bust speed.png'), (200, 300))
-health_up_pic = pygame.transform.scale(pygame.image.load('data/pic/add health.png'), (200, 300))
-max_health_pic = pygame.transform.scale(pygame.image.load('data/pic/max health.png'), (200, 300))
-show_health_bar_pic = pygame.transform.scale(pygame.image.load('data/pic/show heath bar.png'), (200, 300))
-chance_to_spawn_a_shooting_enemy_pic = pygame.transform.scale(pygame.image.load('data/pic/chance shoot.png'),
-                                                              (200, 300))
-shrink_up_pic = pygame.transform.scale(pygame.image.load('data/pic/wall push.png'), (200, 300))
-moment_push_pic = pygame.transform.scale(pygame.image.load('data/pic/moment push.png'), (200, 300))
-damaged_up_pic = pygame.transform.scale(pygame.image.load('data/pic/damage.png'), (200, 300))
-fire_rate_up_pic = pygame.transform.scale(pygame.image.load('data/pic/fire rate.png'), (200, 300))
-shoot_through_pic = pygame.transform.scale(pygame.image.load('data/pic/shot throught.png'), (200, 300))
-kill_all_enemies_pic = pygame.transform.scale(pygame.image.load('data/pic/kill all.png'), (200, 300))
 perks = [
     Perk("Cкорость пули", 10, bust_speed, speed_up_pic),
     Perk("Востановление", 15, health_plus, health_up_pic),
@@ -558,7 +551,6 @@ def game_loop():
     global enemies, enemy_bullets  # Добавьте enemy_bullets в глобальные переменные
     global WINDOW_WIDTH, WINDOW_HEIGHT, screen
     global player, TOTAL_ENEMIES, SHRINK_INTERVAL, SPAWN_INTERVAL
-    global show_health_bar
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
     last_spawn_time = pygame.time.get_ticks()
     last_shrink_time = pygame.time.get_ticks()
@@ -641,7 +633,7 @@ def game_loop():
         player.update()
 
         # счётчик поинтов
-        counter_text = font.render(f"{COUNT_OF_POINTS}", True, POINT_COLOR)
+        counter_text = font.render(f"{COUNT_OF_POINTS}", True, (128, 0, 128))
         current_time = pygame.time.get_ticks()
         if current_time - last_spawn_time >= SPAWN_INTERVAL + random.randint(-200, 200):
             spawn_enemy()
@@ -675,8 +667,8 @@ def game_loop():
             bullet.update()
             if bullet.is_outside_screen():
                 enemy_bullets.remove(bullet)
-            if (player.x + PLAYER_RADIUS > bullet.x > player.x - PLAYER_RADIUS
-                    and player.y + PLAYER_RADIUS > bullet.y > player.y - PLAYER_RADIUS):
+            if (player.x + player.radius > bullet.x > player.x - player.radius
+                    and player.y + player.radius > bullet.y > player.y - player.radius):
                 player.take_damage(5)
                 enemy_bullets.remove(bullet)
             bullet.draw()
@@ -697,7 +689,7 @@ def game_loop():
         screen.blit(crosshair_image,
                     (cursor_x - 10, cursor_y - 10))  # Отрисовываем перекрестие прицела и Центрируем перекрестие
 
-        if show_health_bar:
+        if player.show_health_bar:
             player.draw_health_bar()
         pygame.display.update()
         clock.tick(30)
@@ -720,23 +712,15 @@ def spawn_enemy():
         x = WINDOW_WIDTH
         y = random.randint(0, WINDOW_HEIGHT)
 
-    # Случайный выбор типа врага (обычный или стреляющий)
-    if TOTAL_ENEMIES >= 25 + random.randint(0, 5):
-        if TOTAL_ENEMIES >= 50 + random.randint(0, 5):
-            if random.random() < Chance_to_spawn_a_fast_enemy:  # 50% шанс на создание стреляющего врага
-                enemies.append(FastEnemy(x, y, 3))
-            else:
-                if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
-                    enemies.append(ShootingEnemy(x, y, 3))
-                else:
-                    enemies.append(Enemy(x, y, 2))
-        else:
-            if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
-                enemies.append(ShootingEnemy(x, y, 3))
-            else:
-                enemies.append(Enemy(x, y, 2))
-    else:
-        enemies.append(Enemy(x, y, 2))
+    table = [[Enemy, 1, 0, 2],
+             [ShootingEnemy, Chance_to_spawn_a_shooting_enemy, 25, 6],
+             [FastEnemy, Chance_to_spawn_a_fast_enemy, 50, 8]]
+
+    sorted_table = sorted(table, key = lambda x: x[2])
+    for enemy_type, spawn_chance, kill_count, xp in reversed(sorted_table):
+        if random.random() <= spawn_chance:
+            if TOTAL_ENEMIES >= kill_count:
+                enemies.append(enemy_type(x, y, xp))
 
 
 def game_over():
