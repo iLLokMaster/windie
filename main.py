@@ -475,51 +475,6 @@ perks = [
     Perk("Убить всех врагов", 50, kill_all_enemies, kill_all_enemies_pic)]
 
 
-class BossFight:
-    """Уровень с боссом"""
-
-    def __init__(self):
-        pass
-
-    def run(self):
-        global WINDOW_WIDTH, WINDOW_HEIGHT, screen
-        size = pygame.display.get_surface().get_size()
-        WINDOW_WIDTH, WINDOW_HEIGHT = size
-        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
-        first_press_time = pygame.time.get_ticks()
-        while True:
-            screen.fill(BLACK)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    quit()
-            # обработка ввода
-            if pygame.mouse.get_pressed()[0]:
-                player.shoot()
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_w]:
-                player.move(0, -5)
-            if keys[pygame.K_s]:
-                player.move(0, 5)
-            if keys[pygame.K_a]:
-                player.move(-5, 0)
-            if keys[pygame.K_d]:
-                player.move(5, 0)
-            if keys[pygame.K_SPACE]:
-                last_press_time = pygame.time.get_ticks()
-                if last_press_time - first_press_time > 400:
-                    if first_random_chose:
-                        perks_menu = PerksMenu()
-                    perks_menu.run()
-                    first_press_time = pygame.time.get_ticks()
-            if keys[pygame.K_ESCAPE]:
-                exit()
-
-            player.update_bullets()
-            player.update()
-            pygame.display.update()
-
-
 class PerksMenu:
     """Меню перков. При запуске случайным образом предлагается 3 перка.
     Каждый перк имеет свою стоимость, и при повторной покупке его цена увеличивается."""
@@ -530,9 +485,7 @@ class PerksMenu:
         self.font = font
         self.font_perks = pygame.font.SysFont('arial', 16)
         # Случайным образом выбираем 3 различных перка из общего списка
-        if first_random_chose:
-            self.options = random.sample(perks, 3)
-            first_random_chose = False
+        self.options = random.sample(perks, 3)
 
     def run(self):
         global COUNT_OF_POINTS  # счёт поинтов игрока
@@ -631,6 +584,7 @@ def game_loop():
     pygame.mixer.music.set_volume(0.5)
     pygame.mixer.music.play(loops = -1)
     first_press_time = pygame.time.get_ticks()
+    perks_menu = PerksMenu()
 
     while True:
         for event in pygame.event.get():
@@ -652,8 +606,6 @@ def game_loop():
         if keys[pygame.K_SPACE]:
             last_press_time = pygame.time.get_ticks()
             if last_press_time - first_press_time > 400:
-                if first_random_chose:
-                    perks_menu = PerksMenu()
                 perks_menu.run()
                 first_press_time = pygame.time.get_ticks()
         if keys[pygame.K_ESCAPE]:
@@ -769,27 +721,22 @@ def spawn_enemy():
         y = random.randint(0, WINDOW_HEIGHT)
 
     # Случайный выбор типа врага (обычный или стреляющий)
-    if TOTAL_ENEMIES >= 90:
-        if len(enemies) == 0:
-            boss = BossFight()
-            boss.run()
-    else:
-        if TOTAL_ENEMIES >= 25 + random.randint(0, 5):
-            if TOTAL_ENEMIES >= 50 + random.randint(0, 5):
-                if random.random() < Chance_to_spawn_a_fast_enemy:  # 50% шанс на создание стреляющего врага
-                    enemies.append(FastEnemy(x, y, 3))
-                else:
-                    if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
-                        enemies.append(ShootingEnemy(x, y, 3))
-                    else:
-                        enemies.append(Enemy(x, y, 2))
+    if TOTAL_ENEMIES >= 25 + random.randint(0, 5):
+        if TOTAL_ENEMIES >= 50 + random.randint(0, 5):
+            if random.random() < Chance_to_spawn_a_fast_enemy:  # 50% шанс на создание стреляющего врага
+                enemies.append(FastEnemy(x, y, 3))
             else:
                 if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
                     enemies.append(ShootingEnemy(x, y, 3))
                 else:
                     enemies.append(Enemy(x, y, 2))
         else:
-            enemies.append(Enemy(x, y, 2))
+            if random.random() < Chance_to_spawn_a_shooting_enemy:  # 50% шанс на создание стреляющего врага
+                enemies.append(ShootingEnemy(x, y, 3))
+            else:
+                enemies.append(Enemy(x, y, 2))
+    else:
+        enemies.append(Enemy(x, y, 2))
 
 
 def game_over():
