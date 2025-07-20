@@ -428,7 +428,7 @@ def bust_shrink_amount():
     if player.SHRINK_AMOUNT < 200:
         player.SHRINK_AMOUNT += 5
     else:
-        perks.remove(Perk("Сдвиг окна", 20, bust_shrink_amount, shrink_up_pic),)
+        perks.remove(Perk("Сдвиг окна", 20, bust_shrink_amount, shrink_up_pic), )
 
 
 def bust_damage():
@@ -452,7 +452,8 @@ speed_up_pic = pygame.transform.scale(pygame.image.load('data/pic/bust speed.png
 health_up_pic = pygame.transform.scale(pygame.image.load('data/pic/add health.png'), (200, 300))
 max_health_pic = pygame.transform.scale(pygame.image.load('data/pic/max health.png'), (200, 300))
 show_health_bar_pic = pygame.transform.scale(pygame.image.load('data/pic/show heath bar.png'), (200, 300))
-chance_to_spawn_a_shooting_enemy_pic = pygame.transform.scale(pygame.image.load('data/pic/chance shoot.png'), (200, 300))
+chance_to_spawn_a_shooting_enemy_pic = pygame.transform.scale(pygame.image.load('data/pic/chance shoot.png'),
+                                                              (200, 300))
 shrink_up_pic = pygame.transform.scale(pygame.image.load('data/pic/wall push.png'), (200, 300))
 moment_push_pic = pygame.transform.scale(pygame.image.load('data/pic/moment push.png'), (200, 300))
 damaged_up_pic = pygame.transform.scale(pygame.image.load('data/pic/damage.png'), (200, 300))
@@ -471,18 +472,6 @@ perks = [
     Perk("Частота выстрелов", 15, bust_shoot_cooldown, fire_rate_up_pic),
     Perk("Пробить насквозь", 20, chance_to_break_through, shoot_through_pic),
     Perk("Убить всех врагов", 50, kill_all_enemies, kill_all_enemies_pic)]
-
-
-# class BossFight:
-#     """Уровень с боссом"""
-#
-#     def __init__(self):
-#
-#
-#     def run(self):
-#
-#         while boss_active:
-#
 
 
 class PerksMenu:
@@ -596,6 +585,7 @@ def game_loop():
     pygame.mixer.music.set_volume(0.5)
     pygame.mixer.music.play(loops = -1)
     first_press_time = pygame.time.get_ticks()
+    perks_menu = PerksMenu()
 
     while True:
         for event in pygame.event.get():
@@ -617,8 +607,6 @@ def game_loop():
         if keys[pygame.K_SPACE]:
             last_press_time = pygame.time.get_ticks()
             if last_press_time - first_press_time > 400:
-                if first_random_chose:
-                    perks_menu = PerksMenu()
                 perks_menu.run()
                 first_press_time = pygame.time.get_ticks()
         if keys[pygame.K_ESCAPE]:
@@ -733,7 +721,7 @@ def spawn_enemy():
         x = WINDOW_WIDTH
         y = random.randint(0, WINDOW_HEIGHT)
 
-    # Случайный выбор типа врага (обычный или стреляющий)
+    # Случайный выбор типа врага
     if TOTAL_ENEMIES >= 25 + random.randint(0, 5):
         if TOTAL_ENEMIES >= 50 + random.randint(0, 5):
             if random.random() < Chance_to_spawn_a_fast_enemy:  # 50% шанс на создание стреляющего врага
