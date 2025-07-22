@@ -4,7 +4,6 @@ import random
 import math
 import pyautogui
 
-
 # константы
 enemies = []
 points = []
@@ -70,6 +69,9 @@ class Player:
     def __init__(self, x, y):
         self.x = x
         self.y = y
+        self.speed_x = 0
+        self.speed_y = 0
+
         self.bullets = []  # список пулей игрока
         self.last_shot_time = pygame.time.get_ticks()
         self.damage = 1  # урон
@@ -103,10 +105,14 @@ class Player:
         for bullet in self.bullets:
             bullet.draw()
 
-    def move(self, dx, dy):
+    def move(self, force_x, force_y):
         """Изменение координат. Выполняет перемещение персонажа по экрану."""
-        self.x += dx
-        self.y += dy
+        if -3 < self.speed_x < 3 and -6 < self.speed_x + self.speed_y < 6:
+            self.speed_x += force_x
+        if -3 < self.speed_y < 3:
+            self.speed_y += force_y
+        self.x += self.speed_x
+        self.y += self.speed_y
 
         # Ограничение движения в пределах окна
         self.x = max(self.radius, min(self.x, WINDOW_WIDTH - self.radius))
@@ -156,6 +162,17 @@ class Player:
 
     def update(self):
         """Обновление состояния игрока."""
+        if self.speed_y > 0:
+            self.speed_y -= 1
+        elif self.speed_y < 0:
+            self.speed_y += 1
+
+        if self.speed_x > 0:
+            self.speed_x -= 1
+        elif self.speed_x < 0:
+            self.speed_x += 1
+        self.move(0, 0)
+
         if self.invulnerable_time > 0:
             self.invulnerable_time -= clock.get_time()  # Уменьшение времени бессмертия
 
@@ -460,7 +477,7 @@ def bust_shoot_cooldown():
 def chance_to_break_through():
     global Chance_to_break_through
     if Chance_to_break_through != 1:
-        Chance_to_break_through += 0.1
+        Chance_to_break_through += 0.25
 
 
 perks = [
@@ -476,6 +493,19 @@ perks = [
     Perk("Пробить насквозь", 20, chance_to_break_through, shoot_through_pic),
     Perk("Убить всех врагов", 50, kill_all_enemies, kill_all_enemies_pic)]
 
+
+# щит
+# ракеты
+# виды оружия
+#     огнемёт
+#     ближник
+#     волна
+# увеличение размера снаряда
+#     стрельба становится медленнее
+# разрывные снаряды
+# дружественные дроны
+# выбор класса в начале игры
+# энерция движения
 
 class PerksMenu:
     """Меню перков. При запуске случайным образом предлагается 3 перка.
@@ -568,7 +598,7 @@ def game_loop():
     global points, COUNT_OF_POINTS
     global enemies, enemy_bullets  # Добавьте enemy_bullets в глобальные переменные
     global WINDOW_WIDTH, WINDOW_HEIGHT, screen
-    global player, TOTAL_ENEMIES, SHRINK_INTERVAL, SPAWN_INTERVAL
+    global player, TOTAL_ENEMIES, SHRINK_INTERVAL, SPAWN_INTERVAL, i
     player = Player(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2)
     last_spawn_time = pygame.time.get_ticks()
     last_shrink_time = pygame.time.get_ticks()
@@ -580,19 +610,8 @@ def game_loop():
     pygame.draw.line(crosshair_image, WHITE, (0, 10), (20, 10), 2)
     pygame.mouse.set_visible(False)
 
-    # музыка в игре
-    list_of_music = ['data/music/01. Windowkiller.mp3',
-                     'data/music/02. Windowframe.mp3',
-                     'data/music/Nitro_Fun_-_Cheat_Codes_VIP_64603577.mp3',
-                     'data/music/Le_Castle_Vania_-_Infinite_Ammo_64572038.mp3',
-                     'data/music/Styline_Tommie_Sunshine_-_BLACKOUT_Original_Mix_Original_Mix_66664034.mp3',
-                     'data/music/PRXSXNT_FXTURE_KXRAIN_-_CRUEL_78404168.mp3',
-                     'data/music/03. Windowchill.mp3'
-                     ]
-    rand_misic = random.choice(list_of_music)
-    pygame.mixer.music.load(rand_misic)
-    pygame.mixer.music.set_volume(0.5)
-    pygame.mixer.music.play(loops = -1)
+    # звуки
+
     first_press_time = pygame.time.get_ticks()
     perks_menu = PerksMenu()
 
@@ -606,13 +625,13 @@ def game_loop():
             player.shoot()
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
-            player.move(0, -5)
+            player.move(0, -2)
         if keys[pygame.K_s]:
-            player.move(0, 5)
+            player.move(0, 2)
         if keys[pygame.K_a]:
-            player.move(-5, 0)
+            player.move(-2, 0)
         if keys[pygame.K_d]:
-            player.move(5, 0)
+            player.move(2, 0)
         if keys[pygame.K_SPACE]:
             last_press_time = pygame.time.get_ticks()
             if last_press_time - first_press_time > 400:
@@ -678,7 +697,7 @@ def game_loop():
 
             enemy.update()  # Обновляем врагов, чтобы они двигались к игроку
             if enemy.is_colliding_with_player():
-                player.take_damage(10)
+                player.take_damage(1)
 
         # Обработка столкновений пуль врагов с игроком
         for bullet in enemy_bullets[:]:
@@ -687,7 +706,7 @@ def game_loop():
                 enemy_bullets.remove(bullet)
             if (player.x + player.radius > bullet.x > player.x - player.radius
                     and player.y + player.radius > bullet.y > player.y - player.radius):
-                player.take_damage(5)
+                player.take_damage(1)
                 enemy_bullets.remove(bullet)
             bullet.draw()
 
